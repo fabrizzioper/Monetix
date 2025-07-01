@@ -1,0 +1,668 @@
+"use client"
+
+import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
+import { Formik, Form, Field, ErrorMessage } from "formik"
+import { ArrowLeft, Save, Calculator } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading-spinner"
+import { bondFormSchema } from "@/lib/validation/bond-form.schema"
+import { BondsService } from "@/lib/services/bonds.service"
+import { useCurrentBond } from "@/lib/hooks/use-current-bond"
+import { useUserBonds } from "@/lib/hooks/use-user-bonds"
+import { cn } from "@/lib/utils"
+
+const defaultValues = {
+  valorNominal: '',
+  nAnios: '',
+  frecuenciaCupon: '',
+  diasPorAnio: '',
+  tipoTasa: '',
+  tasaInteres: '',
+  tipoGracia: '',
+  plazoGraciaAnio: '',
+  pctEstruct: '',
+  pctColoc: '',
+  pctCavali: '',
+  kd: '',
+  capitalizacion: '',
+}
+
+const LOCAL_STORAGE_KEY = 'monetix-bond-form';
+
+export function BondForm() {
+  const router = useRouter()
+  const { currentBond, mode, setCalculationResult } = useCurrentBond()
+  const { createBond, updateBond } = useUserBonds()
+  const [bondName, setBondName] = useState("")
+  const [localInitialValues, setLocalInitialValues] = useState(defaultValues)
+  const isFirstLoad = useRef(true)
+
+  // Cargar datos de localStorage si no hay currentBond
+  useEffect(() => {
+    if (!currentBond && isFirstLoad.current) {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          // Convertir todos los valores a string para el formulario
+          const values = parsed.values || defaultValues
+          const stringValues = Object.assign({}, defaultValues, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? '' : String(v)])))
+          setLocalInitialValues(stringValues)
+          setBondName(parsed.bondName || "")
+        } catch {}
+      }
+      isFirstLoad.current = false
+    } else if (currentBond) {
+      // Convertir a string para el formulario
+      const values = currentBond.input || defaultValues
+      const stringValues = Object.assign({}, defaultValues, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? '' : String(v)])))
+      setLocalInitialValues(stringValues)
+      setBondName(currentBond.name || "")
+    }
+  }, [currentBond])
+
+  // Guardar en localStorage cada vez que cambian los valores o el nombre
+  const handleFormChange = (values: any, bondNameValue: string) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ values, bondName: bondNameValue }))
+    }
+  }
+
+  // Limpiar localStorage al calcular, guardar o cancelar
+  const clearLocalStorage = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(LOCAL_STORAGE_KEY)
+    }
+  }
+
+  const initialValues = currentBond?.input
+    ? Object.assign({}, defaultValues, Object.fromEntries(Object.entries(currentBond.input).map(([k, v]) => [k, v === undefined || v === null ? '' : String(v)])))
+    : localInitialValues
+
+  useEffect(() => {
+    if (currentBond && mode === "edit") {
+      setBondName(currentBond.name)
+    } else if (!currentBond && localInitialValues) {
+      setBondName((prev) => prev || "")
+    }
+  }, [currentBond, mode, localInitialValues])
+
+  const handleSubmit = async (values: any, actions: any) => {
+    try {
+      clearLocalStorage()
+      const bondInput: any = {};
+      if (values.valorNominal !== '') bondInput.valorNominal = Number(values.valorNominal);
+      if (values.nAnios !== '') bondInput.nAnios = Number(values.nAnios);
+      if (values.frecuenciaCupon !== '') bondInput.frecuenciaCupon = Number(values.frecuenciaCupon);
+      if (values.diasPorAnio !== '') bondInput.diasPorAnio = Number(values.diasPorAnio);
+      if (values.tasaInteres !== '') bondInput.tasaInteres = Number(values.tasaInteres);
+      if (values.plazoGraciaAnio !== '') bondInput.plazoGraciaAnio = Number(values.plazoGraciaAnio);
+      if (values.pctEstruct !== '') bondInput.pctEstruct = Number(values.pctEstruct);
+      if (values.pctColoc !== '') bondInput.pctColoc = Number(values.pctColoc);
+      if (values.pctCavali !== '') bondInput.pctCavali = Number(values.pctCavali);
+      if (values.kd !== '') bondInput.kd = Number(values.kd);
+      bondInput.tipoTasa = values.tipoTasa;
+      bondInput.tipoGracia = values.tipoGracia;
+      bondInput.capitalizacion = values.capitalizacion || "";
+      // Calcular y guardar TEA calculada si aplica
+      if (values.tipoTasa === 'Nominal' && values.tasaInteres && values.capitalizacion) {
+        const tna = Number(values.tasaInteres) / 100;
+        let m = 1;
+        switch (values.capitalizacion) {
+          case 'Diaria': m = 360; break;
+          case 'Quincenal': m = 24; break;
+          case 'Mensual': m = 12; break;
+          case 'Bimestral': m = 6; break;
+          case 'Trimestral': m = 4; break;
+          case 'Cuatrimestral': m = 3; break;
+          case 'Semestral': m = 2; break;
+          case 'Anual': m = 1; break;
+          default: m = 1;
+        }
+        const tea = (Math.pow(1 + tna / m, m) - 1) * 100;
+        bondInput.teaCalculada = tea;
+      } else if (values.tipoTasa === 'Efectiva' && values.tasaInteres) {
+        bondInput.teaCalculada = Number(values.tasaInteres);
+      } else {
+        bondInput.teaCalculada = null;
+      }
+
+      let result
+      if (mode === "edit" && currentBond) {
+        result = await updateBond(currentBond.id, {
+          name: bondName || currentBond.name,
+          input: bondInput,
+        })
+      } else {
+        const name = bondName || `Bono ${new Date().toLocaleDateString("es-PE")}`
+        result = await createBond(name, bondInput)
+      }
+
+      if (result) {
+        // Calcular el resultado completo
+        const calculationResult = await BondsService.calculateBondPreview(bondInput)
+        // Guardar el resultado en el backend
+        await BondsService.calculateAndSaveBond(result.id, result.userId, calculationResult)
+        setCalculationResult(calculationResult)
+        router.push("/resultado")
+      }
+    } catch (error) {
+      console.error("Error al procesar el bono:", error)
+      actions.setStatus("Error al procesar el bono")
+    }
+  }
+
+  const handleSaveOnly = async (values: any) => {
+    try {
+      clearLocalStorage()
+      const bondInputSave: any = {};
+      if (values.valorNominal !== '') bondInputSave.valorNominal = Number(values.valorNominal);
+      if (values.nAnios !== '') bondInputSave.nAnios = Number(values.nAnios);
+      if (values.frecuenciaCupon !== '') bondInputSave.frecuenciaCupon = Number(values.frecuenciaCupon);
+      if (values.diasPorAnio !== '') bondInputSave.diasPorAnio = Number(values.diasPorAnio);
+      if (values.tasaInteres !== '') bondInputSave.tasaInteres = Number(values.tasaInteres);
+      if (values.plazoGraciaAnio !== '') bondInputSave.plazoGraciaAnio = Number(values.plazoGraciaAnio);
+      if (values.pctEstruct !== '') bondInputSave.pctEstruct = Number(values.pctEstruct);
+      if (values.pctColoc !== '') bondInputSave.pctColoc = Number(values.pctColoc);
+      if (values.pctCavali !== '') bondInputSave.pctCavali = Number(values.pctCavali);
+      if (values.kd !== '') bondInputSave.kd = Number(values.kd);
+      bondInputSave.tipoTasa = values.tipoTasa;
+      bondInputSave.tipoGracia = values.tipoGracia;
+      bondInputSave.capitalizacion = values.capitalizacion || "";
+      // Calcular y guardar TEA calculada si aplica
+      if (values.tipoTasa === 'Nominal' && values.tasaInteres && values.capitalizacion) {
+        const tna = Number(values.tasaInteres) / 100;
+        let m = 1;
+        switch (values.capitalizacion) {
+          case 'Diaria': m = 360; break;
+          case 'Quincenal': m = 24; break;
+          case 'Mensual': m = 12; break;
+          case 'Bimestral': m = 6; break;
+          case 'Trimestral': m = 4; break;
+          case 'Cuatrimestral': m = 3; break;
+          case 'Semestral': m = 2; break;
+          case 'Anual': m = 1; break;
+          default: m = 1;
+        }
+        const tea = (Math.pow(1 + tna / m, m) - 1) * 100;
+        bondInputSave.teaCalculada = tea;
+      } else if (values.tipoTasa === 'Efectiva' && values.tasaInteres) {
+        bondInputSave.teaCalculada = Number(values.tasaInteres);
+      } else {
+        bondInputSave.teaCalculada = null;
+      }
+
+      if (mode === "edit" && currentBond) {
+        await updateBond(currentBond.id, {
+          name: bondName || currentBond.name,
+          input: bondInputSave,
+        })
+      } else {
+        const name = bondName || `Bono ${new Date().toLocaleDateString("es-PE")}`
+        await createBond(name, bondInputSave)
+      }
+
+      router.push("/dashboard")
+    } catch (error) {
+      console.error("Error al guardar el bono:", error)
+    }
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => { clearLocalStorage(); router.back(); }}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+              {mode === "edit" ? "Editar Bono" : "Nuevo Bono"}
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600">
+              {mode === "edit" ? "Modifica los datos del bono" : "Complete los datos para crear el bono"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Información General */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">Información General</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="w-full">
+            <Label htmlFor="bondName" className="text-sm font-medium text-gray-700">
+              Nombre del Bono
+            </Label>
+            <Input
+              id="bondName"
+              value={bondName}
+              onChange={(e) => {
+                setBondName(e.target.value)
+                handleFormChange(initialValues, e.target.value)
+              }}
+              placeholder="Ej: Bono Corporativo ABC"
+              className="mt-2 w-full"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Formik initialValues={initialValues} validationSchema={bondFormSchema} onSubmit={handleSubmit} enableReinitialize>
+        {({ isSubmitting, values }) => {
+          useEffect(() => {
+            handleFormChange(values, bondName)
+          }, [values, bondName])
+          return (
+            <Form className="space-y-6 relative">
+              {isSubmitting && <LoadingOverlay text="Calculando..." />}
+              {/* Sección Emisor */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl">Sección Emisor</CardTitle>
+                  <CardDescription>Datos principales del instrumento financiero</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Todos los campos del formulario con responsive grid */}
+                  <div className="space-y-2">
+                    <Label htmlFor="valorNominal" className="text-sm font-medium text-gray-700">
+                      Valor Nominal
+                    </Label>
+                    <Field name="valorNominal">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="valorNominal"
+                          type="number"
+                          placeholder="515000000"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="valorNominal" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nAnios" className="text-sm font-medium text-gray-700">
+                      Nº de Años
+                    </Label>
+                    <Field name="nAnios">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="nAnios"
+                          type="number"
+                          placeholder="8"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="nAnios" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="frecuenciaCupon" className="text-sm font-medium text-gray-700">
+                      Frecuencia del cupón
+                    </Label>
+                    <Field name="frecuenciaCupon">
+                      {({ field, form, meta }: any) => (
+                        <Select
+                          value={field.value?.toString() || ""}
+                          onValueChange={(value) => form.setFieldValue("frecuenciaCupon", Number(value))}
+                        >
+                          <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
+                            <SelectValue placeholder="Seleccionar frecuencia" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Anual (1)</SelectItem>
+                            <SelectItem value="2">Semestral (2)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </Field>
+                    <ErrorMessage name="frecuenciaCupon" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="diasPorPeriodo" className="text-sm font-medium text-gray-700">
+                      Días por Período
+                    </Label>
+                    <Input
+                      id="diasPorPeriodo"
+                      type="number"
+                      value={(() => {
+                        switch (Number(values.frecuenciaCupon)) {
+                          case 12: return 30;
+                          case 6: return 60;
+                          case 4: return 90;
+                          case 3: return 120;
+                          case 2: return 180;
+                          case 1: return 360;
+                          default: return '';
+                        }
+                      })()}
+                      readOnly
+                      disabled
+                      className="w-full bg-gray-100 cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="diasPorAnio" className="text-sm font-medium text-gray-700">
+                      Días × Año
+                    </Label>
+                    <Field name="diasPorAnio">
+                      {({ field, form, meta }: any) => (
+                        <Select
+                          value={field.value?.toString() || ""}
+                          onValueChange={(value) => form.setFieldValue("diasPorAnio", Number(value))}
+                        >
+                          <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
+                            <SelectValue placeholder="Seleccionar convención" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="360">360 días</SelectItem>
+                            <SelectItem value="365">365 días</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </Field>
+                    <ErrorMessage name="diasPorAnio" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tipoTasa" className="text-sm font-medium text-gray-700">
+                      Tipo de Tasa de Interés
+                    </Label>
+                    <Field name="tipoTasa">
+                      {({ field, form, meta }: any) => (
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={(value) => form.setFieldValue("tipoTasa", value)}
+                        >
+                          <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Efectiva">Efectiva</SelectItem>
+                            <SelectItem value="Nominal">Nominal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </Field>
+                    <ErrorMessage name="tipoTasa" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  {/* Campo Capitalización solo si tipoTasa === 'Nominal' */}
+                  {values.tipoTasa === 'Nominal' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="capitalizacion" className="text-sm font-medium text-gray-700">
+                        Capitalización
+                      </Label>
+                      <Field name="capitalizacion">
+                        {({ field, form, meta }: any) => (
+                          <Select
+                            value={field.value || ""}
+                            onValueChange={(value) => form.setFieldValue("capitalizacion", value)}
+                          >
+                            <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}> 
+                              <SelectValue placeholder="Seleccionar capitalización" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Diaria">Diaria</SelectItem>
+                              <SelectItem value="Quincenal">Quincenal</SelectItem>
+                              <SelectItem value="Mensual">Mensual</SelectItem>
+                              <SelectItem value="Bimestral">Bimestral</SelectItem>
+                              <SelectItem value="Trimestral">Trimestral</SelectItem>
+                              <SelectItem value="Cuatrimestral">Cuatrimestral</SelectItem>
+                              <SelectItem value="Semestral">Semestral</SelectItem>
+                              <SelectItem value="Anual">Anual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </Field>
+                      {/* Cálculo y visualización de TEA como input bloqueado */}
+                      {values.tasaInteres && values.capitalizacion && (
+                        <div className="mt-1">
+                          <Label htmlFor="teaCalculada" className="text-xs font-medium text-gray-700">TEA calculada</Label>
+                          <Input
+                            id="teaCalculada"
+                            value={(() => {
+                              const tna = Number(values.tasaInteres) / 100;
+                              let m = 1;
+                              switch (values.capitalizacion) {
+                                case 'Diaria': m = 360; break;
+                                case 'Quincenal': m = 24; break;
+                                case 'Mensual': m = 12; break;
+                                case 'Bimestral': m = 6; break;
+                                case 'Trimestral': m = 4; break;
+                                case 'Cuatrimestral': m = 3; break;
+                                case 'Semestral': m = 2; break;
+                                case 'Anual': m = 1; break;
+                                default: m = 1;
+                              }
+                              const tea = (Math.pow(1 + tna / m, m) - 1) * 100;
+                              return tea.toLocaleString('es-PE', { minimumFractionDigits: 3, maximumFractionDigits: 5 }) + '%';
+                            })()}
+                            readOnly
+                            disabled
+                            className="w-full bg-gray-100 cursor-not-allowed mt-1"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tasaInteres" className="text-sm font-medium text-gray-700">
+                      Tasa de interés (%)
+                    </Label>
+                    <Field name="tasaInteres">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="tasaInteres"
+                          type="number"
+                          step="0.001"
+                          placeholder="7.375"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="tasaInteres" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tipoGracia" className="text-sm font-medium text-gray-700">
+                      Tipo de Gracia
+                    </Label>
+                    <Field name="tipoGracia">
+                      {({ field, form, meta }: any) => (
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={(value) => form.setFieldValue("tipoGracia", value)}
+                        >
+                          <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Ninguna">Ninguna</SelectItem>
+                            <SelectItem value="Parcial">Parcial</SelectItem>
+                            <SelectItem value="Total">Total</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </Field>
+                    <ErrorMessage name="tipoGracia" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="plazoGraciaAnio" className="text-sm font-medium text-gray-700">
+                      Plazo de Gracia (año)
+                    </Label>
+                    <Field name="plazoGraciaAnio">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="plazoGraciaAnio"
+                          type="number"
+                          placeholder="4"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="plazoGraciaAnio" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  {/* Campo autocalculado: Nº de Periodos de Gracia */}
+                  <div className="space-y-2">
+                    <Label htmlFor="nPeriodosGracia" className="text-sm font-medium text-gray-700">
+                      Nº de Periodos de Gracia
+                    </Label>
+                    <Input
+                      id="nPeriodosGracia"
+                      type="number"
+                      value={values.plazoGraciaAnio ? 2 * Number(values.plazoGraciaAnio) : 0}
+                      readOnly
+                      disabled
+                      className="w-full bg-gray-100 cursor-not-allowed"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Costes Iniciales */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl">Costes Iniciales (%)</CardTitle>
+                  <CardDescription>Porcentajes sobre el valor nominal</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pctEstruct" className="text-sm font-medium text-gray-700">
+                      % Estructuración
+                    </Label>
+                    <Field name="pctEstruct">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="pctEstruct"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.45"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="pctEstruct" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="pctColoc" className="text-sm font-medium text-gray-700">
+                      % Colocación
+                    </Label>
+                    <Field name="pctColoc">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="pctColoc"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.25"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="pctColoc" component="p" className="text-xs text-red-600" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="pctCavali" className="text-sm font-medium text-gray-700">
+                      % CAVALI
+                    </Label>
+                    <Field name="pctCavali">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="pctCavali"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.5"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="pctCavali" component="p" className="text-xs text-red-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Botones */}
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { clearLocalStorage(); router.back(); }}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  Cancelar
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSaveOnly(values)}
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Solo Guardar
+                </Button>
+
+                <Button
+                  type="submit"
+                  className="bg-monetix-primary hover:bg-monetix-secondary text-white w-full sm:w-auto"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" />
+                      Calculando...
+                    </div>
+                  ) : (
+                    <>
+                      <Calculator className="h-4 w-4 mr-2" />
+                      Calcular
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Form>
+          )
+        }}
+      </Formik>
+    </div>
+  )
+}
+
+
+
+
+/*
+=SI(Capitalización		2="Diaria",1,SI(Capitalización		2="Quincenal",15,SI(Capitalización		2="Mensual",30,SI(Capitalización		2="Bimestral",60,SI(Capitalización		2="Trimestral",90,SI(Capitalización		2="Cuatrimestral",120,SI(Capitalización		2="Semestral",180,360)))))))*/

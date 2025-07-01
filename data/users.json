@@ -1,0 +1,11 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "email": "usuario@ejemplo.com",
+      "password": "12345",
+      "name": "Administrador",
+      "avatar": "/images/monetix-icon.png"
+    }
+  ]
+}
