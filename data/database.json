@@ -15,6 +15,14 @@
       "avatar": "https://res.cloudinary.com/dwngsjipv/image/upload/v1751348092/q062jpdremsyd0tbjgqk.png",
       "createdAt": "2025-07-01T05:34:54.379Z",
       "password": "1234re23423"
+    },
+    {
+      "id": "1751428907350-z6ewqcdt6",
+      "email": "fabrizzioqwe_vasquez@hotmail.com",
+      "name": "XIOMARA FERNANDA",
+      "avatar": "https://res.cloudinary.com/dwngsjipv/image/upload/v1751428904/aeq8na9evtnb5h3sgejf.png",
+      "createdAt": "2025-07-02T04:01:47.350Z",
+      "password": "213412312"
     }
   ],
   "bonds": [
@@ -39,7 +47,7 @@
       "id": "1751339701177-meluvuxrj",
       "status": "active",
       "createdAt": "2025-07-01T03:15:01.177Z",
-      "updatedAt": "2025-07-01T03:15:01.725Z",
+      "updatedAt": "2025-07-02T00:49:25.600Z",
       "code": "BON-001",
       "lastCalculation": {
         "input": {
@@ -468,6 +476,211 @@
           "duracionModif": 4.752021378853842,
           "tceaEmisor": 0.10082519999999999,
           "treaBonista": 0.0849748
+        }
+      }
+    },
+    {
+      "userId": "1",
+      "name": "Bono 1/7/2025",
+      "input": {
+        "valorNominal": 65454,
+        "nAnios": 9,
+        "frecuenciaCupon": 1,
+        "diasPorAnio": 360,
+        "tasaInteres": 8.545,
+        "plazoGraciaAnio": 1,
+        "pctEstruct": 0.544,
+        "pctColoc": 0.946,
+        "pctCavali": 0.0475,
+        "tipoTasa": "Nominal",
+        "tipoGracia": "Parcial",
+        "capitalizacion": "Quincenal",
+        "teaCalculada": 8.904181552406953
+      },
+      "id": "1751429057088-pimeyrjn6",
+      "status": "active",
+      "createdAt": "2025-07-02T04:04:17.088Z",
+      "updatedAt": "2025-07-02T04:04:18.014Z",
+      "lastCalculation": {
+        "input": {
+          "valorNominal": 65454,
+          "nAnios": 9,
+          "frecuenciaCupon": 1,
+          "diasPorAnio": 360,
+          "tasaInteres": 8.545,
+          "plazoGraciaAnio": 1,
+          "pctEstruct": 0.544,
+          "pctColoc": 0.946,
+          "pctCavali": 0.0475,
+          "tipoTasa": "Nominal",
+          "tipoGracia": "Parcial",
+          "capitalizacion": "Quincenal",
+          "teaCalculada": 8.904181552406953
+        },
+        "constants": {
+          "frecuenciaCupon": 1,
+          "nPeriodosPorAnio": 1,
+          "nTotalPeriodos": 9,
+          "nPeriodosGracia": 1,
+          "tasaEfectivaAnual": 0.08904181552406953,
+          "tasaEfectivaMensual": 0.007133509900173696,
+          "tasaEfectivaPeriodo": 0.08904181552406953,
+          "nombreTasaPeriodo": "TEA",
+          "tasaPeriodica": 0.08545,
+          "costesInicialesEmisor": 975.2646,
+          "costesInicialesBonista": 31.09065
+        },
+        "schedule": [
+          {
+            "n": 0,
+            "plazoGracia": "",
+            "bono": 65454,
+            "saldoFinal": 65454,
+            "cuponInteres": 0,
+            "cuota": 0,
+            "amort": 0,
+            "flujoEmisor": 64447.64475,
+            "flujoBonista": -65485.09065,
+            "flujoAct": -65485.09065,
+            "faXPlazo": 0,
+            "factorConv": 0
+          },
+          {
+            "n": 1,
+            "plazoGracia": "P",
+            "bono": 65454,
+            "saldoFinal": 65454,
+            "cuponInteres": -5593.0443,
+            "cuota": 5593.0443,
+            "amort": 0,
+            "flujoEmisor": -5593.0443,
+            "flujoBonista": 5593.0443,
+            "flujoAct": 5152.742457045464,
+            "faXPlazo": 5152.742457045464,
+            "factorConv": 10305.484914090928
+          },
+          {
+            "n": 2,
+            "plazoGracia": "S",
+            "bono": 65454,
+            "saldoFinal": 59420.420586016386,
+            "cuponInteres": -5593.0443,
+            "cuota": 11626.623713983616,
+            "amort": 6033.579413983616,
+            "flujoEmisor": -11626.623713983616,
+            "flujoBonista": 11626.623713983616,
+            "flujoAct": 9868.109755157662,
+            "faXPlazo": 19736.219510315324,
+            "factorConv": 59208.65853094598
+          },
+          {
+            "n": 3,
+            "plazoGracia": "S",
+            "bono": 59420.420586016386,
+            "saldoFinal": 52871.27181110787,
+            "cuponInteres": -5077.4749390751,
+            "cuota": 11626.623713983616,
+            "amort": 6549.148774908515,
+            "flujoEmisor": -11626.623713983616,
+            "flujoBonista": 11626.623713983616,
+            "flujoAct": 9091.26146313295,
+            "faXPlazo": 27273.784389398854,
+            "factorConv": 109095.13755759542
+          },
+          {
+            "n": 4,
+            "plazoGracia": "S",
+            "bono": 52871.27181110787,
+            "saldoFinal": 45762.49827338342,
+            "cuponInteres": -4517.850176259168,
+            "cuota": 11626.623713983618,
+            "amort": 7108.77353772445,
+            "flujoEmisor": -11626.623713983618,
+            "flujoBonista": 11626.623713983618,
+            "flujoAct": 8375.569084833896,
+            "faXPlazo": 33502.276339335585,
+            "factorConv": 167511.38169667794
+          },
+          {
+            "n": 5,
+            "plazoGracia": "S",
+            "bono": 45762.49827338342,
+            "saldoFinal": 38046.280036860415,
+            "cuponInteres": -3910.405477460613,
+            "cuota": 11626.623713983618,
+            "amort": 7716.218236523005,
+            "flujoEmisor": -11626.623713983618,
+            "flujoBonista": 11626.623713983618,
+            "flujoAct": 7716.218236523005,
+            "faXPlazo": 38581.091182615026,
+            "factorConv": 231486.54709569016
+          },
+          {
+            "n": 6,
+            "plazoGracia": "S",
+            "bono": 38046.280036860415,
+            "saldoFinal": 29670.710952026515,
+            "cuponInteres": -3251.0546291497226,
+            "cuota": 11626.623713983623,
+            "amort": 8375.5690848339,
+            "flujoEmisor": -11626.623713983623,
+            "flujoBonista": 11626.623713983623,
+            "flujoAct": 7108.7735377244535,
+            "faXPlazo": 42652.64122634672,
+            "factorConv": 298568.48858442705
+          },
+          {
+            "n": 7,
+            "plazoGracia": "S",
+            "bono": 29670.710952026515,
+            "saldoFinal": 20579.44948889356,
+            "cuponInteres": -2535.3622508506655,
+            "cuota": 11626.623713983621,
+            "amort": 9091.261463132956,
+            "flujoEmisor": -11626.623713983621,
+            "flujoBonista": 11626.623713983621,
+            "flujoAct": 6549.148774908519,
+            "faXPlazo": 45844.04142435963,
+            "factorConv": 366752.33139487705
+          },
+          {
+            "n": 8,
+            "plazoGracia": "S",
+            "bono": 20579.44948889356,
+            "saldoFinal": 10711.339733735893,
+            "cuponInteres": -1758.5139588259547,
+            "cuota": 11626.623713983621,
+            "amort": 9868.109755157666,
+            "flujoEmisor": -11626.623713983621,
+            "flujoBonista": 11626.623713983621,
+            "flujoAct": 6033.579413983619,
+            "faXPlazo": 48268.63531186895,
+            "factorConv": 434417.7178068206
+          },
+          {
+            "n": 9,
+            "plazoGracia": "S",
+            "bono": 10711.339733735893,
+            "saldoFinal": 1.8189894035458565e-12,
+            "cuponInteres": -915.2839802477321,
+            "cuota": 11626.623713983623,
+            "amort": 10711.339733735891,
+            "flujoEmisor": -11626.623713983623,
+            "flujoBonista": 11626.623713983623,
+            "flujoAct": 5558.597276690423,
+            "faXPlazo": 50027.37549021381,
+            "factorConv": 500273.7549021381
+          }
+        ],
+        "metrics": {
+          "precioActual": 65454,
+          "utilidad": -31.090649999998277,
+          "duracion": 4.752021378853842,
+          "convexidad": 33.269464089028375,
+          "total": 38.021485467882215,
+          "duracionModif": 4.752021378853842,
+          "tceaEmisor": 0.100825,
+          "treaBonista": 0.084975
         }
       }
     }
