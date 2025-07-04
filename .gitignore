@@ -10,3 +10,4 @@ yarn-error.log
 pnpm-debug.log
 output/
 coverage/ 
+/lib/generated/prisma

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { PrismaClient } from "@/lib/generated/prisma";
+
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -8,11 +9,8 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return NextResponse.json({ success: false, error: "Faltan campos obligatorios" }, { status: 400 });
     }
-    const databasePath = path.join(process.cwd(), "data", "database.json");
-    const dbRaw = await fs.readFile(databasePath, "utf-8");
-    const db = JSON.parse(dbRaw);
-    const user = db.users.find((u: any) => u.email === email && u.password === password);
-    if (!user) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || user.password !== password) {
       return NextResponse.json({ success: false, error: "Credenciales inválidas" }, { status: 401 });
     }
     const { password: _, ...userWithoutPassword } = user;
