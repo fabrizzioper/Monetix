@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
   const newBond = await prisma.bond.create({
     data: {
       ...body,
+      tasaOportunidad: body.tasaOportunidad ?? (body.input?.tasaOportunidad ?? null),
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -27,7 +28,11 @@ export async function PUT(req: NextRequest) {
   const { id, ...updates } = body;
   const bond = await prisma.bond.update({
     where: { id },
-    data: { ...updates, updatedAt: new Date() },
+    data: {
+      ...updates,
+      tasaOportunidad: updates.tasaOportunidad ?? (updates.input?.tasaOportunidad ?? null),
+      updatedAt: new Date(),
+    },
   });
   return NextResponse.json(bond);
 }

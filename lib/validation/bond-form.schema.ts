@@ -24,8 +24,8 @@ export const bondFormSchema = Yup.object({
 
   tasaInteres: Yup.number()
     .required("La tasa de interés es requerida")
-    .min(0, "No puede ser negativa")
-    .max(100, "Máximo 100%"),
+    .min(5, "Mínimo 5%")
+    .max(9, "Máximo 9%"),
 
   tipoGracia: Yup.string()
     .required("El tipo de gracia es requerido")
@@ -55,6 +55,11 @@ export const bondFormSchema = Yup.object({
       }
       return value
     }),
+
+  tasaOportunidad: Yup.number()
+    .required("La tasa anual de oportunidad es requerida")
+    .min(0.0001, "Debe ser mayor a 0")
+    .max(100, "Máximo 100%"),
 })
 
 export type BondFormValues = Yup.InferType<typeof bondFormSchema>

@@ -20,17 +20,18 @@ const defaultValues = {
   valorNominal: '',
   nAnios: '',
   frecuenciaCupon: '',
-  diasPorAnio: '',
+  diasPorAnio: 360,
   tipoTasa: '',
   tasaInteres: '',
   tipoGracia: '',
   plazoGraciaAnio: '',
-  pctEstruct: '',
-  pctColoc: '',
-  pctCavali: '',
+  pctEstruct: 1.000,
+  pctColoc: 0.150,
+  pctCavali: 0.0525,
   kd: '',
   capitalizacion: '',
-}
+  tasaOportunidad: '',
+} as Record<string, any>;
 
 const LOCAL_STORAGE_KEY = 'monetix-bond-form';
 
@@ -49,18 +50,16 @@ export function BondForm() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved)
-          // Convertir todos los valores a string para el formulario
           const values = parsed.values || defaultValues
-          const stringValues = Object.assign({}, defaultValues, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? '' : String(v)])))
+          const stringValues = Object.assign({}, defaultValues, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? (defaultValues as any)[k] : String(v)])))
           setLocalInitialValues(stringValues)
           setBondName(parsed.bondName || "")
         } catch {}
       }
       isFirstLoad.current = false
     } else if (currentBond) {
-      // Convertir a string para el formulario
       const values = currentBond.input || defaultValues
-      const stringValues = Object.assign({}, defaultValues, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? '' : String(v)])))
+      const stringValues = Object.assign({}, defaultValues, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? (defaultValues as any)[k] : String(v)])))
       setLocalInitialValues(stringValues)
       setBondName(currentBond.name || "")
     }
@@ -81,7 +80,7 @@ export function BondForm() {
   }
 
   const initialValues = currentBond?.input
-    ? Object.assign({}, defaultValues, Object.fromEntries(Object.entries(currentBond.input).map(([k, v]) => [k, v === undefined || v === null ? '' : String(v)])))
+    ? Object.assign({}, defaultValues, Object.fromEntries(Object.entries(currentBond.input).map(([k, v]) => [k, v === undefined || v === null ? (defaultValues as any)[k] : String(v)])))
     : localInitialValues
 
   useEffect(() => {
@@ -94,6 +93,7 @@ export function BondForm() {
 
   const handleSubmit = async (values: any, actions: any) => {
     try {
+      console.log('handleSubmit: valores recibidos', values);
       clearLocalStorage()
       const bondInput: any = {};
       if (values.valorNominal !== '') bondInput.valorNominal = Number(values.valorNominal);
@@ -102,13 +102,15 @@ export function BondForm() {
       if (values.diasPorAnio !== '') bondInput.diasPorAnio = Number(values.diasPorAnio);
       if (values.tasaInteres !== '') bondInput.tasaInteres = Number(values.tasaInteres);
       if (values.plazoGraciaAnio !== '') bondInput.plazoGraciaAnio = Number(values.plazoGraciaAnio);
-      if (values.pctEstruct !== '') bondInput.pctEstruct = Number(values.pctEstruct);
-      if (values.pctColoc !== '') bondInput.pctColoc = Number(values.pctColoc);
-      if (values.pctCavali !== '') bondInput.pctCavali = Number(values.pctCavali);
       if (values.kd !== '') bondInput.kd = Number(values.kd);
+      if (values.tasaOportunidad !== '') bondInput.tasaOportunidad = Number(values.tasaOportunidad);
       bondInput.tipoTasa = values.tipoTasa;
       bondInput.tipoGracia = values.tipoGracia;
       bondInput.capitalizacion = values.capitalizacion || "";
+      // Costos fijos
+      bondInput.pctEstruct = 1.000;
+      bondInput.pctColoc = 0.150;
+      bondInput.pctCavali = 0.0525;
       // Calcular y guardar TEA calculada si aplica
       if (values.tipoTasa === 'Nominal' && values.tasaInteres && values.capitalizacion) {
         const tna = Number(values.tasaInteres) / 100;
@@ -131,7 +133,7 @@ export function BondForm() {
       } else {
         bondInput.teaCalculada = null;
       }
-
+      console.log('handleSubmit: bondInput construido', bondInput);
       let result
       if (mode === "edit" && currentBond) {
         result = await updateBond(currentBond.id, {
@@ -142,7 +144,6 @@ export function BondForm() {
         const name = bondName || `Bono ${new Date().toLocaleDateString("es-PE")}`
         result = await createBond(name, bondInput)
       }
-
       if (result) {
         // Calcular el resultado completo
         const calculationResult = await BondsService.calculateBondPreview(bondInput)
@@ -171,6 +172,7 @@ export function BondForm() {
       if (values.pctColoc !== '') bondInputSave.pctColoc = Number(values.pctColoc);
       if (values.pctCavali !== '') bondInputSave.pctCavali = Number(values.pctCavali);
       if (values.kd !== '') bondInputSave.kd = Number(values.kd);
+      if (values.tasaOportunidad !== '') bondInputSave.tasaOportunidad = Number(values.tasaOportunidad);
       bondInputSave.tipoTasa = values.tipoTasa;
       bondInputSave.tipoGracia = values.tipoGracia;
       bondInputSave.capitalizacion = values.capitalizacion || "";
@@ -196,6 +198,11 @@ export function BondForm() {
       } else {
         bondInputSave.teaCalculada = null;
       }
+
+      // Costos fijos
+      bondInputSave.pctEstruct = 1.000;
+      bondInputSave.pctColoc = 0.150;
+      bondInputSave.pctCavali = 0.0525;
 
       if (mode === "edit" && currentBond) {
         await updateBond(currentBond.id, {
@@ -257,7 +264,8 @@ export function BondForm() {
       </Card>
 
       <Formik initialValues={initialValues} validationSchema={bondFormSchema} onSubmit={handleSubmit} enableReinitialize>
-        {({ isSubmitting, values }) => {
+        {({ isSubmitting, values, errors, touched }) => {
+          console.log("Formik errors", errors, touched, values);
           useEffect(() => {
             handleFormChange(values, bondName)
           }, [values, bondName])
@@ -544,6 +552,26 @@ export function BondForm() {
                       disabled
                       className="w-full bg-gray-100 cursor-not-allowed"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tasaOportunidad" className="text-sm font-medium text-gray-700">
+                      Tasa anual de oportunidad (%)
+                    </Label>
+                    <Field name="tasaOportunidad">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="tasaOportunidad"
+                          type="number"
+                          step="0.001"
+                          placeholder="Ej: 8.5"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="tasaOportunidad" component="p" className="text-xs text-red-600" />
                   </div>
                 </CardContent>
               </Card>

@@ -18,6 +18,7 @@ export interface BondInput {
   // Parámetro opcional del inversionista
   kd?: number // % tasa de descuento
   capitalizacion?: string // frecuencia de capitalización para tasa nominal
+  tasaOportunidad: number // % anual de oportunidad
 }
 
 export interface FlowRow {

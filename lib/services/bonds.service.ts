@@ -20,7 +20,7 @@ export class BondsService {
     const res = await fetch('/api/bonds', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, name, input }),
+      body: JSON.stringify({ userId, name, input, tasaOportunidad: input.tasaOportunidad }),
     })
     return await res.json()
   }
@@ -29,7 +29,7 @@ export class BondsService {
     const res = await fetch('/api/bonds', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: bondId, userId, ...updates }),
+      body: JSON.stringify({ id: bondId, userId, ...updates, tasaOportunidad: updates.input?.tasaOportunidad }),
     })
     if (!res.ok) return null
     return await res.json()

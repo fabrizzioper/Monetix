@@ -35,4 +35,5 @@ model Bond {
   updatedAt       DateTime @updatedAt
   code            String?
   lastCalculation Json?
+  tasaOportunidad Float?
 }
