@@ -12,10 +12,15 @@ import { AdvancedImage } from '@cloudinary/react'
 import { Cloudinary } from '@cloudinary/url-gen'
 import { fill } from '@cloudinary/url-gen/actions/resize'
 
-const CLOUDINARY_UPLOAD_PRESET = "monetix" // Nombre exacto del preset unsigned
-const CLOUDINARY_CLOUD_NAME = "dwngsjipv" // Cloud name real
-const CLOUDINARY_API_KEY = "491443193989922" // API key real
-const CLOUDINARY_API_SECRET = "dFaNR2wkqK96TTNPRoL_Z8KNpuc" // API secret real (no se usa en frontend, solo para referencia)
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+const CLOUDINARY_API_KEY = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY
+const CLOUDINARY_API_SECRET = process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET
+
+if (!CLOUDINARY_UPLOAD_PRESET) throw new Error("CLOUDINARY_UPLOAD_PRESET is not set in .env")
+if (!CLOUDINARY_CLOUD_NAME) throw new Error("CLOUDINARY_CLOUD_NAME is not set in .env")
+if (!CLOUDINARY_API_KEY) throw new Error("CLOUDINARY_API_KEY is not set in .env")
+// CLOUDINARY_API_SECRET solo para referencia, no usar en frontend
 
 export function RegisterForm() {
   const [email, setEmail] = useState("")
@@ -87,7 +92,9 @@ export function RegisterForm() {
     const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
     const formData = new FormData()
     formData.append("file", file)
-    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET)
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET!)
+    formData.append("api_key", CLOUDINARY_API_KEY!)
+    formData.append("cloud_name", CLOUDINARY_CLOUD_NAME!)
     try {
       const res = await fetch(url, { method: "POST", body: formData })
       const data = await res.json()
