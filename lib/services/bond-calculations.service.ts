@@ -11,24 +11,53 @@ import { CalculationLogger } from "./calculation-logger.service"
 
 const pct = (p: number) => p / 100
 
-function tasaPeriodica({ tipoTasa, tasaInteres, frecuenciaCupon }: BondInput) {
+function tasaPeriodica({ tipoTasa, tasaInteres, frecuenciaCupon, capitalizacion }: BondInput) {
   const r = pct(tasaInteres)
-  const result = tipoTasa === "Nominal" ? r / frecuenciaCupon : Math.pow(1 + r, 1 / frecuenciaCupon) - 1
+  let result: number
+  let mCap: number | null = null;
+  if (tipoTasa === "Nominal") {
+    switch (capitalizacion) {
+      case 'Diaria': mCap = 360; break;
+      case 'Quincenal': mCap = 24; break;
+      case 'Mensual': mCap = 12; break;
+      case 'Bimestral': mCap = 6; break;
+      case 'Trimestral': mCap = 4; break;
+      case 'Cuatrimestral': mCap = 3; break;
+      case 'Semestral': mCap = 2; break;
+      case 'Anual': mCap = 1; break;
+      default: mCap = null;
+    }
+    let tea: number
+    if (mCap) {
+      tea = Math.pow(1 + r / mCap, mCap) - 1;
+    } else {
+      tea = Math.pow(1 + r / frecuenciaCupon, frecuenciaCupon) - 1;
+    }
+    result = Math.pow(1 + tea, 1 / frecuenciaCupon) - 1
+  } else {
+    // Efectiva
+    result = Math.pow(1 + r, 1 / frecuenciaCupon) - 1
+  }
 
   CalculationLogger.addStep({
     step: "Cálculo de Tasa Periódica",
-    description: "Convertir la tasa anual a tasa por período según el tipo de tasa",
-    formula: tipoTasa === "Nominal" ? "i = TNA / m" : "i = (1 + TEA)^(1/m) - 1",
+    description: "Convertir la tasa anual a tasa por período según el tipo de tasa y capitalización",
+    formula: tipoTasa === "Nominal"
+      ? "i = (1 + TNA/mCap)^mCap → TEA; i = (1+TEA)^(1/m) - 1"
+      : "i = (1 + TEA)^(1/m) - 1",
     inputs: {
       tipoTasa,
       tasaInteres: `${tasaInteres}%`,
       frecuenciaCupon,
+      capitalizacion,
       tasaDecimal: r,
     },
     calculation:
       tipoTasa === "Nominal"
-        ? `${r} / ${frecuenciaCupon} = ${result}`
-        : `(1 + ${r})^(1/${frecuenciaCupon}) - 1 = ${result}`,
+        ? (capitalizacion && mCap)
+          ? `TEA = (1 + ${r}/${mCap})^${mCap} - 1 = ${((Math.pow(1 + r / mCap, mCap) - 1) * 100).toFixed(6)}%; i = (1+TEA)^(1/${frecuenciaCupon}) - 1 = ${(result * 100).toFixed(6)}%`
+          : `TEA = (1 + ${r}/${frecuenciaCupon})^${frecuenciaCupon} - 1 = ${((Math.pow(1 + r / frecuenciaCupon, frecuenciaCupon) - 1) * 100).toFixed(6)}%; i = (1+TEA)^(1/${frecuenciaCupon}) - 1 = ${(result * 100).toFixed(6)}%`
+        : `(1 + ${r})^(1/${frecuenciaCupon}) - 1 = ${(result * 100).toFixed(6)}%`,
     result: `${(result * 100).toFixed(6)}% por período`,
   })
 
