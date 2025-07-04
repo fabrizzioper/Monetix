@@ -87,11 +87,13 @@ export function BondsTable() {
       if (!result) throw new Error("No se pudo calcular el bono")
       // 2. Guardar el cálculo en la API (actualiza lastCalculation)
       await BondsService.calculateAndSaveBond(bond.id, bond.userId, {
+        input: result.input,
+        constants: result.constants,
         metrics: result.metrics,
         schedule: result.schedule,
       })
       // 3. Actualizar contexto
-      setCurrentBond({ ...bond, lastCalculation: { metrics: result.metrics, schedule: result.schedule } })
+      setCurrentBond({ ...bond, lastCalculation: { input: result.input, constants: result.constants, metrics: result.metrics, schedule: result.schedule } })
       setCalculationResult(result)
       setMode("view")
       // 4. Redirigir a resultados

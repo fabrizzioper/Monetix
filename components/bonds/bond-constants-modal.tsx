@@ -110,6 +110,22 @@ export const BondConstantsModal: React.FC<BondConstantsModalProps> = ({ open, on
           <span className="text-gray-500">Resultado: <b>{formatCurrency(constants.costesInicialesBonista, 'PEN')}</b></span><br />
           <span className="text-gray-500">Solo % CAVALI × Valor Nominal</span>
         </div>
+        <div>
+          <b className="text-monetix-primary">COK {constants.nombreTasaPeriodo || 'por Período'}:</b><br />
+          <span className="text-gray-500">Fórmula: <b>(1 + Tasa anual de oportunidad)^(Días por Período / 360) - 1</b></span><br />
+          <span className="text-gray-500">Datos: <b>(1 + {input.tasaOportunidad}%)^({input.diasPorAnio / input.frecuenciaCupon} / 360) - 1</b></span><br />
+          <span className="text-gray-500">Resultado: <b>{constants.cokPeriodo ? constants.cokPeriodo.toFixed(5) + '%' : 'N/A'}</b></span><br />
+          <span className="text-gray-500">Costo de oportunidad del capital por período.</span>
+        </div>
+        {input.tipoTasa === 'Nominal' && constants.diasCapitalizacion && (
+          <div>
+            <b className="text-monetix-primary">Días capitalización:</b><br />
+            <span className="text-gray-500">Fórmula: <b>=SI(Capitalización="Diaria",1,SI(Capitalización="Quincenal",15,SI(Capitalización="Mensual",30,SI(Capitalización="Bimestral",60,SI(Capitalización="Trimestral",90,SI(Capitalización="Cuatrimestral",120,SI(Capitalización="Semestral",180,360)))))))</b></span><br />
+            <span className="text-gray-500">Datos: <b>Capitalización = {input.capitalizacion}</b></span><br />
+            <span className="text-gray-500">Resultado: <b>{constants.diasCapitalizacion}</b></span><br />
+            <span className="text-gray-500">Se activa cuando se escoge nominal.</span>
+          </div>
+        )}
       </div>
       <DialogFooter>
         <button onClick={() => onOpenChange(false)} className="mt-4 px-4 py-2 rounded bg-monetix-primary text-white hover:bg-monetix-secondary">Cerrar</button>
@@ -117,3 +133,6 @@ export const BondConstantsModal: React.FC<BondConstantsModalProps> = ({ open, on
     </DialogContent>
   </Dialog>
 ); 
+
+
+

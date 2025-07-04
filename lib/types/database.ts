@@ -1,4 +1,4 @@
-import type { BondInput, BondMetrics, FlowRow, BondCalculationResult } from "./bond-calculations"
+import type { BondInput, BondMetrics, FlowRow, BondConstants, BondCalculationResult } from "./bond-calculations"
 
 export interface User {
   id: string
@@ -19,6 +19,8 @@ export interface BondRecord {
   input: BondInput
   lastCalculation?: {
     calculatedAt: string
+    input: BondInput
+    constants: BondConstants
     metrics: BondMetrics
     schedule?: FlowRow[]
   } | null
@@ -30,4 +32,4 @@ export interface Database {
 }
 
 // Re-exportar tipos de cálculos
-export type { BondInput, BondMetrics, FlowRow, BondCalculationResult } from "./bond-calculations"
+export type { BondInput, BondMetrics, FlowRow, BondConstants, BondCalculationResult } from "./bond-calculations"

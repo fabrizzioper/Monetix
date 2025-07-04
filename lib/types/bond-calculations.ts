@@ -48,6 +48,8 @@ export interface BondConstants {
   tasaPeriodica: number // i
   costesInicialesEmisor: number
   costesInicialesBonista: number
+  cokPeriodo?: number // COK por período
+  diasCapitalizacion?: number // Días capitalización (solo para tasa nominal)
 }
 
 export interface BondMetrics {

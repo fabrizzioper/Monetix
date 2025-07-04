@@ -134,6 +134,8 @@ export function BondForm() {
         bondInput.teaCalculada = null;
       }
       console.log('handleSubmit: bondInput construido', bondInput);
+      console.log('handleSubmit: tasaOportunidad en bondInput:', bondInput.tasaOportunidad);
+      console.log('handleSubmit: tipo de tasaOportunidad:', typeof bondInput.tasaOportunidad);
       let result
       if (mode === "edit" && currentBond) {
         result = await updateBond(currentBond.id, {

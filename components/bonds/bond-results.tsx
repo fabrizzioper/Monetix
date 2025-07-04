@@ -114,7 +114,7 @@ function StructuringBlock() {
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">{(() => {
               if (input.tipoTasa === 'Efectiva') {
-                return `${Number(input.tasaInteres).toFixed(3)}%`;
+                return `${Number(input.tasaInteres).toFixed(5)}%`;
               } else if (input.tipoTasa === 'Nominal' && input.tasaInteres) {
                 let m = null;
                 switch (input.capitalizacion) {
@@ -131,11 +131,11 @@ function StructuringBlock() {
                 const tna = Number(input.tasaInteres) / 100;
                 if (m) {
                   const tea = (Math.pow(1 + tna / m, m) - 1) * 100;
-                  return `${tea.toLocaleString('es-PE', { minimumFractionDigits: 3, maximumFractionDigits: 5 })}%`;
+                  return `${tea.toFixed(5)}%`;
                 } else if (input.diasPorAnio && constants.frecuenciaCupon) {
                   const m2 = input.diasPorAnio / constants.frecuenciaCupon;
                   const tea = (Math.pow(1 + tna / m2, m2) - 1) * 100;
-                  return `${tea.toLocaleString('es-PE', { minimumFractionDigits: 3, maximumFractionDigits: 5 })}%`;
+                  return `${tea.toFixed(5)}%`;
                 } else {
                   return '';
                 }
@@ -147,13 +147,13 @@ function StructuringBlock() {
           </div>
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">
-              {constants.tasaEfectivaPeriodo ? (constants.tasaEfectivaPeriodo * 100).toFixed(4) + '%' : (constants.tasaEfectivaMensual * 100).toFixed(4) + '%'}
+              {constants.tasaEfectivaPeriodo ? (constants.tasaEfectivaPeriodo * 100).toFixed(5) + '%' : (constants.tasaEfectivaMensual * 100).toFixed(5) + '%'}
             </div>
             <div className="text-sm text-gray-600">{constants.nombreTasaPeriodo || "Tasa por Período"}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-bold text-gray-900">
-              {formatCurrency((Number(input.pctEstruct || 0) + Number(input.pctColoc || 0) + Number(input.pctCavali || 0)) / 100 * Number(input.valorNominal || 0), 'PEN')}
+              {formatCurrency(constants.costesInicialesEmisor, 'PEN')}
             </div>
             <div className="text-sm text-gray-600 flex flex-col items-center gap-1">
               Costes Iniciales Emisor
@@ -169,22 +169,16 @@ function StructuringBlock() {
             <div className="text-lg font-bold text-gray-900">{constants.nPeriodosGracia}</div>
             <div className="text-sm text-gray-600">Nº Periodos Gracia</div>
           </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-gray-900">
+              {constants.cokPeriodo ? constants.cokPeriodo.toFixed(5) + '%' : ''}
+            </div>
+            <div className="text-sm text-gray-600">COK {constants.frecuenciaCupon === 1 ? 'Anual' : constants.nombreTasaPeriodo || 'por Período'}</div>
+          </div>
           {/* Campo: Días capitalización (solo si tipoTasa === 'Nominal') */}
-          {input.tipoTasa === 'Nominal' && (
+          {input.tipoTasa === 'Nominal' && constants.diasCapitalizacion && (
             <div className="text-center">
-              <div className="text-lg font-bold text-gray-900">{(() => {
-                switch (input.capitalizacion) {
-                  case 'Diaria': return 1;
-                  case 'Quincenal': return 15;
-                  case 'Mensual': return 30;
-                  case 'Bimestral': return 60;
-                  case 'Trimestral': return 90;
-                  case 'Cuatrimestral': return 120;
-                  case 'Semestral': return 180;
-                  case 'Anual': return 360;
-                  default: return '';
-                }
-              })()}</div>
+              <div className="text-lg font-bold text-gray-900">{constants.diasCapitalizacion}</div>
               <div className="text-sm text-gray-600">Días capitalización</div>
             </div>
           )}

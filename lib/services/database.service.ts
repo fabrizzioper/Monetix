@@ -84,7 +84,7 @@ class DatabaseService {
   async saveBondCalculation(
     bondId: string,
     userId: string,
-    calculation: { metrics: any; schedule?: any[] },
+    calculation: { input: any; constants: any; metrics: any; schedule?: any[] },
   ) {
     await prisma.bond.update({
       where: { id: bondId },

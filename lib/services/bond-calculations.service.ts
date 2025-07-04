@@ -119,7 +119,33 @@ export function buildBondTable(input: BondInput): FlowRow[] {
   const m = input.frecuenciaCupon
   const N = input.nAnios * m // Total de períodos
   const Ng = input.plazoGraciaAnio * m // Número de períodos de gracia
-  const i = tasaPeriodica(input) // Tasa periódica
+  
+  // Calcular tasa periódica usando la misma lógica que en calculateConstants
+  const tasaDecimal = pct(input.tasaInteres)
+  let tea: number
+  if (input.tipoTasa === "Nominal") {
+    const tna = tasaDecimal
+    let mCap = null;
+    switch (input.capitalizacion) {
+      case 'Diaria': mCap = 360; break;
+      case 'Quincenal': mCap = 24; break;
+      case 'Mensual': mCap = 12; break;
+      case 'Bimestral': mCap = 6; break;
+      case 'Trimestral': mCap = 4; break;
+      case 'Cuatrimestral': mCap = 3; break;
+      case 'Semestral': mCap = 2; break;
+      case 'Anual': mCap = 1; break;
+      default: mCap = null;
+    }
+    if (mCap) {
+      tea = Math.pow(1 + tna / mCap, mCap) - 1;
+    } else {
+      tea = Math.pow(1 + tna / m, m) - 1;
+    }
+  } else {
+    tea = tasaDecimal
+  }
+  const i = Math.pow(1 + tea, 1 / m) - 1 // Tasa periódica (TES)
 
   // Calcular días por período según frecuencia
   const diasPorPeriodo = calcularDiasPorPeriodo(m)
@@ -146,12 +172,12 @@ export function buildBondTable(input: BondInput): FlowRow[] {
     dependencies: ["Cálculo de Tasa Periódica", "Cálculo de Días por Período"],
   })
 
-  // Costes iniciales
-  const cEstruct = input.valorNominal * pct(input.pctEstruct)
-  const cColoc = input.valorNominal * pct(input.pctColoc)
-  const cCavali = input.valorNominal * pct(input.pctCavali)
-  const costesInicialesEmisor = cEstruct + cColoc +cCavali
-  const costesInicialesBonista = cCavali
+  // Costes iniciales - Usar la misma lógica que en calculateConstants
+  const pctEstruct = pct(input.pctEstruct)
+  const pctColoc = pct(input.pctColoc)
+  const pctCavali = pct(input.pctCavali)
+  const costesInicialesEmisor = input.valorNominal * (pctEstruct + pctColoc + pctCavali)
+  const costesInicialesBonista = input.valorNominal * pctCavali
 
   CalculationLogger.addStep({
     step: "Cálculo de Costes Iniciales",
@@ -163,7 +189,7 @@ export function buildBondTable(input: BondInput): FlowRow[] {
       pctColoc: `${input.pctColoc}%`,
       pctCavali: `${input.pctCavali}%`,
     },
-    calculation: `Estructuración = ${cEstruct}, Colocación = ${cColoc}, CAVALI = ${cCavali}`,
+    calculation: `Estructuración = ${input.valorNominal * pctEstruct}, Colocación = ${input.valorNominal * pctColoc}, CAVALI = ${input.valorNominal * pctCavali}`,
     result: {
       costesInicialesEmisor,
       costesInicialesBonista,
@@ -349,11 +375,12 @@ export function buildBondTable(input: BondInput): FlowRow[] {
       //const saldoFinal = saldoInicial - amortizacion
 
       // Valor presente y factores
-      //8. Flujo actualizado (PV)
-      const pv = flujoBonista / Math.pow(1 + i, n)
-      //9. FA x Plazo
-      const faPlazo = pv * n * diasPorPeriodo /360
-      //10. Factor de Convexidad
+      //8. Flujo actualizado (PV) - Usar COK por período para descontar
+      const cokPeriodoDecimal = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1 : 0
+      const pv = flujoBonista / Math.pow(1 + cokPeriodoDecimal, n)
+      //9. FA x Plazo - Fórmula exacta del Excel: PV * n * (días por período / 360)
+      const faPlazo = pv * n * (diasPorPeriodo / 360)
+      //10. Factor de Convexidad - Fórmula exacta del Excel: PV * n * (n + 1)
       const factorConv = pv * n * (n + 1)
 
       rows.push({
@@ -425,6 +452,9 @@ export function buildBondTable(input: BondInput): FlowRow[] {
 /* ---------- Constantes derivadas ---------- */
 
 export function calculateConstants(input: BondInput): BondConstants {
+  console.log('🔍 calculateConstants - input recibido:', input);
+  console.log('🔍 calculateConstants - tasaOportunidad:', input.tasaOportunidad);
+  console.log('🔍 calculateConstants - tipo tasaOportunidad:', typeof input.tasaOportunidad);
   const pctEstruct = pct(input.pctEstruct)
   const pctColoc = pct(input.pctColoc)
   const pctCavali = pct(input.pctCavali)
@@ -467,23 +497,55 @@ export function calculateConstants(input: BondInput): BondConstants {
   // TEM siempre (para comparación)
   const tem = Math.pow(1 + tea, 1 / 12) - 1
 
-  // Tasa periódica (i)
-  const tasaPeriodicaCalc = tasaPeriodica(input)
+  // Tasa periódica (i) - Usar la tasa efectiva por período
+  const tasaPeriodicaCalc = tasaEfectivaPeriodo
 
   // Costes iniciales
-  const costesInicialesEmisor = input.valorNominal * (pctEstruct + pctColoc)
+  const costesInicialesEmisor = input.valorNominal * (pctEstruct + pctColoc + pctCavali)
   const costesInicialesBonista = input.valorNominal * pctCavali
+
+  // COK por período - Fórmula corregida según el ejemplo
+  console.log('🔍 COK por período - Valores de entrada:', {
+    tasaOportunidad: input.tasaOportunidad,
+    diasPorAnio: input.diasPorAnio,
+    tasaOportunidadDecimal: pct(input.tasaOportunidad),
+    diasPorPeriodo: input.diasPorAnio / input.frecuenciaCupon
+  });
+  // Fórmula corregida: (1 + tasaOportunidad)^(diasPorPeriodo/360) - 1
+  const cokPeriodo = input.tasaOportunidad ? (Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1) * 100 : undefined
+  console.log('🔍 COK por período - Cálculo:', {
+    base: 1 + pct(input.tasaOportunidad),
+    exponente: (input.diasPorAnio / input.frecuenciaCupon) / 360,
+    resultado: cokPeriodo
+  });
+
+  // Días capitalización (solo para tasa nominal)
+  let diasCapitalizacion: number | undefined
+  if (input.tipoTasa === 'Nominal' && input.capitalizacion) {
+    switch (input.capitalizacion) {
+      case 'Diaria': diasCapitalizacion = 1; break;
+      case 'Quincenal': diasCapitalizacion = 15; break;
+      case 'Mensual': diasCapitalizacion = 30; break;
+      case 'Bimestral': diasCapitalizacion = 60; break;
+      case 'Trimestral': diasCapitalizacion = 90; break;
+      case 'Cuatrimestral': diasCapitalizacion = 120; break;
+      case 'Semestral': diasCapitalizacion = 180; break;
+      case 'Anual': diasCapitalizacion = 360; break;
+      default: diasCapitalizacion = undefined;
+    }
+  }
 
   CalculationLogger.addStep({
     step: "Constantes Derivadas Finales",
     description: "Cálculo de todas las constantes derivadas del bono",
-    formula: `TEA, ${nombreTasaPeriodo}, TEM, Costes, etc.`,
+    formula: `TEA, ${nombreTasaPeriodo}, TEM, Costes, COK, Días Capitalización, etc.`,
     inputs: {
       tipoTasa: input.tipoTasa,
       tasaInteres: input.tasaInteres,
       frecuencia: m,
       nombreTasaPeriodo,
       capitalizacion: input.capitalizacion,
+      tasaOportunidad: input.tasaOportunidad,
     },
     calculation:
       input.tipoTasa === "Nominal"
@@ -496,10 +558,12 @@ export function calculateConstants(input: BondInput): BondConstants {
       tasaPeriodica: tasaPeriodicaCalc,
       costesEmisor: costesInicialesEmisor,
       costesBonista: costesInicialesBonista,
+      cokPeriodo,
+      diasCapitalizacion,
     },
   })
 
-  return {
+  const constants = {
     frecuenciaCupon: m,
     nPeriodosPorAnio,
     nTotalPeriodos: N,
@@ -511,7 +575,14 @@ export function calculateConstants(input: BondInput): BondConstants {
     tasaPeriodica: tasaPeriodicaCalc,
     costesInicialesEmisor,
     costesInicialesBonista,
+    cokPeriodo,
+    diasCapitalizacion,
   }
+  
+  console.log('🔍 calculateConstants - constants finales:', constants);
+  console.log('🔍 calculateConstants - cokPeriodo final:', constants.cokPeriodo);
+  
+  return constants
 }
 
 /* ---------- TIR ---------- */
@@ -602,31 +673,35 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
   })
 
   const sumFaPlazo = rows.reduce((s, r) => s + r.faXPlazo, 0)
-  const dur = sumFaPlazo / precio
+  // Duración: Excel usa la suma de todos los flujos actualizados (excluyendo período 0) como denominador
+  const precioTotal = rows.slice(1).reduce((s, r) => s + r.flujoAct, 0)
+  const dur = sumFaPlazo / precioTotal
   CalculationLogger.addStep({
     step: "Duración de Macaulay",
-    description: "Suma de FA×Plazo dividido por el precio",
-    formula: "D = Σ(PV_n × n) / P",
+    description: "Suma de FA×Plazo dividido por la suma total de flujos actualizados",
+    formula: "D = Σ(PV_n × n) / Σ(PV_n)",
     inputs: {
       sumaFaXPlazo: sumFaPlazo,
-      precio,
+      precioTotal,
     },
-    calculation: `${sumFaPlazo} / ${precio} = ${dur}`,
+    calculation: `${sumFaPlazo} / ${precioTotal} = ${dur}`,
     result: `${dur.toFixed(4)} años`,
     dependencies: ["Precio Actual"],
   })
 
   const sumFactorConv = rows.reduce((s, r) => s + r.factorConv, 0)
-  const conv = sumFactorConv / precio
+  // Convexidad: Excel usa el valor absoluto de la suma de todos los flujos actualizados (excluyendo período 0) como denominador
+  const precioTotalConvexidad = Math.abs(rows.slice(1).reduce((s, r) => s + r.flujoAct, 0))
+  const conv = sumFactorConv / precioTotalConvexidad
   CalculationLogger.addStep({
     step: "Convexidad",
-    description: "Suma de factores de convexidad dividido por el precio",
-    formula: "CV = Σ(PV_n × n × (n+1)) / P",
+    description: "Suma de factores de convexidad dividido por el valor absoluto de la suma total de flujos actualizados (excluyendo período 0)",
+    formula: "CV = Σ(PV_n × n × (n+1)) / |Σ(PV_n)|",
     inputs: {
       sumaFactorConv: sumFactorConv,
-      precio,
+      precioTotalConvexidad,
     },
-    calculation: `${sumFactorConv} / ${precio} = ${conv}`,
+    calculation: `${sumFactorConv} / |${precioTotalConvexidad}| = ${conv}`,
     result: conv,
     dependencies: ["Precio Actual"],
   })

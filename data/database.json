@@ -42,7 +42,8 @@
         "tipoTasa": "Nominal",
         "tipoGracia": "Parcial",
         "capitalizacion": "Trimestral",
-        "teaCalculada": 8.241093599605943
+        "teaCalculada": 8.241093599605943,
+        "tasaOportunidad": 8.5
       },
       "id": "1751339701177-meluvuxrj",
       "status": "active",
@@ -63,7 +64,8 @@
           "tipoTasa": "Nominal",
           "tipoGracia": "Parcial",
           "capitalizacion": "Trimestral",
-          "teaCalculada": 8.241093599605943
+          "teaCalculada": 8.241093599605943,
+          "tasaOportunidad": 8.5
         },
         "constants": {
           "frecuenciaCupon": 2,
@@ -76,7 +78,9 @@
           "nombreTasaPeriodo": "TES",
           "tasaPeriodica": 0.03999,
           "costesInicialesEmisor": 14.2125,
-          "costesInicialesBonista": 2.984625
+          "costesInicialesBonista": 2.984625,
+          "cokSemestral": 4.1234,
+          "diasCapitalizacion": 90
         },
         "schedule": [
           {
