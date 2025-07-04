@@ -277,15 +277,22 @@ export function BondForm() {
                       Valor Nominal
                     </Label>
                     <Field name="valorNominal">
-                      {({ field, meta }: any) => (
-                        <Input
-                          {...field}
-                          id="valorNominal"
-                          type="number"
-                          placeholder="515000000"
-                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
-                          value={field.value ?? ''}
-                        />
+                      {({ field, form, meta }: any) => (
+                        <Select
+                          value={field.value?.toString() || ""}
+                          onValueChange={(value) => form.setFieldValue("valorNominal", Number(value))}
+                        >
+                          <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
+                            <SelectValue placeholder="Seleccionar valor nominal" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 10 }, (_, i) => (i + 1) * 1000).map((value) => (
+                              <SelectItem key={value} value={value.toString()}>
+                                {value.toLocaleString('es-PE')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
                     </Field>
                     <ErrorMessage name="valorNominal" component="p" className="text-xs text-red-600" />
@@ -296,15 +303,22 @@ export function BondForm() {
                       Nº de Años
                     </Label>
                     <Field name="nAnios">
-                      {({ field, meta }: any) => (
-                        <Input
-                          {...field}
-                          id="nAnios"
-                          type="number"
-                          placeholder="8"
-                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
-                          value={field.value ?? ''}
-                        />
+                      {({ field, form, meta }: any) => (
+                        <Select
+                          value={field.value?.toString() || ""}
+                          onValueChange={(value) => form.setFieldValue("nAnios", Number(value))}
+                        >
+                          <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
+                            <SelectValue placeholder="Seleccionar número de años" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 13 }, (_, i) => i + 3).map((value) => (
+                              <SelectItem key={value} value={value.toString()}>
+                                {value}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
                     </Field>
                     <ErrorMessage name="nAnios" component="p" className="text-xs text-red-600" />
@@ -361,23 +375,14 @@ export function BondForm() {
                     <Label htmlFor="diasPorAnio" className="text-sm font-medium text-gray-700">
                       Días × Año
                     </Label>
-                    <Field name="diasPorAnio">
-                      {({ field, form, meta }: any) => (
-                        <Select
-                          value={field.value?.toString() || ""}
-                          onValueChange={(value) => form.setFieldValue("diasPorAnio", Number(value))}
-                        >
-                          <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
-                            <SelectValue placeholder="Seleccionar convención" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="360">360 días</SelectItem>
-                            <SelectItem value="365">365 días</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </Field>
-                    <ErrorMessage name="diasPorAnio" component="p" className="text-xs text-red-600" />
+                    <Input
+                      id="diasPorAnio"
+                      type="number"
+                      value="360"
+                      readOnly
+                      disabled
+                      className="w-full bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -554,60 +559,42 @@ export function BondForm() {
                     <Label htmlFor="pctEstruct" className="text-sm font-medium text-gray-700">
                       % Estructuración
                     </Label>
-                    <Field name="pctEstruct">
-                      {({ field, meta }: any) => (
-                        <Input
-                          {...field}
-                          id="pctEstruct"
-                          type="number"
-                          step="0.01"
-                          placeholder="0.45"
-                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
-                          value={field.value ?? ''}
-                        />
-                      )}
-                    </Field>
-                    <ErrorMessage name="pctEstruct" component="p" className="text-xs text-red-600" />
+                    <Input
+                      id="pctEstruct"
+                      type="text"
+                      value="1.000%"
+                      readOnly
+                      disabled
+                      className="w-full bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="pctColoc" className="text-sm font-medium text-gray-700">
                       % Colocación
                     </Label>
-                    <Field name="pctColoc">
-                      {({ field, meta }: any) => (
-                        <Input
-                          {...field}
-                          id="pctColoc"
-                          type="number"
-                          step="0.01"
-                          placeholder="0.25"
-                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
-                          value={field.value ?? ''}
-                        />
-                      )}
-                    </Field>
-                    <ErrorMessage name="pctColoc" component="p" className="text-xs text-red-600" />
+                    <Input
+                      id="pctColoc"
+                      type="text"
+                      value="0.150%"
+                      readOnly
+                      disabled
+                      className="w-full bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="pctCavali" className="text-sm font-medium text-gray-700">
                       % CAVALI
                     </Label>
-                    <Field name="pctCavali">
-                      {({ field, meta }: any) => (
-                        <Input
-                          {...field}
-                          id="pctCavali"
-                          type="number"
-                          step="0.01"
-                          placeholder="0.5"
-                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
-                          value={field.value ?? ''}
-                        />
-                      )}
-                    </Field>
-                    <ErrorMessage name="pctCavali" component="p" className="text-xs text-red-600" />
+                    <Input
+                      id="pctCavali"
+                      type="text"
+                      value="0.0525%"
+                      readOnly
+                      disabled
+                      className="w-full bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
                 </CardContent>
               </Card>
