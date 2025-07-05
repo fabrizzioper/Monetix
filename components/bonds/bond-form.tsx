@@ -91,6 +91,8 @@ export function BondForm() {
     }
   }, [currentBond, mode, localInitialValues])
 
+
+
   const handleSubmit = async (values: any, actions: any) => {
     try {
       clearLocalStorage()
@@ -523,7 +525,15 @@ export function BondForm() {
                       {({ field, form, meta }: any) => (
                         <Select
                           value={field.value || ""}
-                          onValueChange={(value) => form.setFieldValue("tipoGracia", value)}
+                          onValueChange={(value) => {
+                            form.setFieldValue("tipoGracia", value);
+                            // Si se selecciona "Ninguna", establecer plazo de gracia en vacío
+                            if (value === "Ninguna") {
+                              form.setFieldValue("plazoGraciaAnio", "");
+                              // Limpiar también el error de validación
+                              form.setFieldError("plazoGraciaAnio", undefined);
+                            }
+                          }}
                         >
                           <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
                             <SelectValue placeholder="Seleccionar tipo" />
@@ -544,15 +554,25 @@ export function BondForm() {
                       Plazo de Gracia (año)
                     </Label>
                     <Field name="plazoGraciaAnio">
-                      {({ field, meta }: any) => (
-                        <Input
-                          {...field}
-                          id="plazoGraciaAnio"
-                          type="number"
-                          placeholder="4"
-                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
-                          value={field.value ?? ''}
-                        />
+                      {({ field, form, meta }: any) => (
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={(value) => form.setFieldValue("plazoGraciaAnio", value)}
+                          disabled={values.tipoGracia === "Ninguna"}
+                        >
+                          <SelectTrigger className={cn(
+                            "w-full", 
+                            meta.touched && meta.error && "border-red-500",
+                            values.tipoGracia === "Ninguna" && "bg-gray-100 cursor-not-allowed"
+                          )}>
+                            <SelectValue placeholder="Seleccionar plazo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1</SelectItem>
+                            <SelectItem value="2">2</SelectItem>
+                            <SelectItem value="3">3</SelectItem>
+                          </SelectContent>
+                        </Select>
                       )}
                     </Field>
                     <ErrorMessage name="plazoGraciaAnio" component="p" className="text-xs text-red-600" />
@@ -566,7 +586,7 @@ export function BondForm() {
                     <Input
                       id="nPeriodosGracia"
                       type="number"
-                      value={values.plazoGraciaAnio ? 2 * Number(values.plazoGraciaAnio) : 0}
+                      value={values.tipoGracia === "Ninguna" ? 0 : (values.plazoGraciaAnio && values.frecuenciaCupon ? Number(values.plazoGraciaAnio) * Number(values.frecuenciaCupon) : 0)}
                       readOnly
                       disabled
                       className="w-full bg-gray-100 cursor-not-allowed"
