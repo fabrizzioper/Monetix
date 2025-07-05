@@ -236,7 +236,7 @@ export function buildBondTable(input: BondInput): FlowRow[] {
       const cokPeriodoDecimal = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1 : 0
       const pv = flujoBonista / Math.pow(1 + cokPeriodoDecimal, n)
       const faPlazo = pv * n * (diasPorPeriodo / 360)
-      const factorConv = pv * n * (n + 1)
+      const factorConv = pv * n * (n + 1) * (diasPorPeriodo / 360)
 
       rows.push({
         n,
@@ -381,8 +381,8 @@ export function buildBondTable(input: BondInput): FlowRow[] {
       const pv = flujoBonista / Math.pow(1 + cokPeriodoDecimal, n)
       //9. FA x Plazo - Fórmula exacta del Excel: PV * n * (días por período / 360)
       const faPlazo = pv * n * (diasPorPeriodo / 360)
-      //10. Factor de Convexidad - Fórmula exacta del Excel: PV * n * (n + 1)
-      const factorConv = pv * n * (n + 1)
+      //10. Factor de Convexidad - Fórmula exacta del Excel: PV * n * (n + 1) * (días por período / 360)
+      const factorConv = pv * n * (n + 1) * (diasPorPeriodo / 360)
 
       rows.push({
         n,
@@ -684,28 +684,42 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
     dependencies: ["Precio Actual"],
   })
 
-  const sumFactorConv = rows.reduce((s, r) => s + r.factorConv, 0)
-  // Convexidad: Fórmula exacta de Excel
-  // =SUMA(Factor p/Convexidad) / ((1 + Tasa anual de oportunidad)² × Σ(Flujo Act.) × (Días × Año / Frecuencia del cupón)²)
+  // IMPORTANTE: Para convexidad, NO incluir el período 0 (fila 0)
+  const sumFactorConv = rows.slice(1).reduce((s, r) => s + r.factorConv, 0)
   const sumaFlujoAct = rows.slice(1).reduce((s, r) => s + r.flujoAct, 0)
+  
   // Tasa anual de oportunidad (no por período)
   const tasaAnualOportunidad = input.tasaOportunidad ? pct(input.tasaOportunidad) : 0
-  // Días por año / Frecuencia del cupón
-  const diasPorFrecuencia = input.diasPorAnio / input.frecuenciaCupon
-  // Fórmula exacta de Excel: Convexidad = Σ(Factor p/Convexidad) / ((1 + Tasa anual)² × Σ(Flujo Act.) × (Días/Frecuencia)²)
-  const denominadorConvexidad = Math.pow(1 + tasaAnualOportunidad, 2) * sumaFlujoAct * Math.pow(diasPorFrecuencia, 2)
-  const conv = denominadorConvexidad > 0 ? sumFactorConv / denominadorConvexidad : 0
+  
+      // Fórmula estándar de convexidad: CV = Σ(PV × t × (t+1)) / (P × (1+r)²)
+    // Donde PV = valor presente de cada flujo, t = período, P = precio del bono, r = tasa de descuento
+    let conv: number
+    
+    if (sumaFlujoAct > 0 && tasaAnualOportunidad > 0) {
+      // Calcular convexidad usando la fórmula estándar
+      const numerador = rows.slice(1).reduce((sum, r) => {
+        return sum + (r.flujoAct * r.n * (r.n + 1))
+      }, 0)
+      
+      const denominador = sumaFlujoAct * Math.pow(1 + tasaAnualOportunidad, 2)
+      
+      conv = numerador / denominador
+    } else {
+      conv = 0
+    }
   
   // COK por período (tasa de descuento por período) - para duración modificada
   const cokPeriodoDecimal = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1 : 0
   
   console.log('🔍 DEBUG CONVEXIDAD - VALORES CLAVE:', {
-    sumFactorConv: sumFactorConv,
     sumaFlujoAct: sumaFlujoAct,
     tasaAnualOportunidad: tasaAnualOportunidad,
-    diasPorFrecuencia: diasPorFrecuencia,
-    denominadorConvexidad: denominadorConvexidad,
-    conv: conv
+    numerador: rows.slice(1).reduce((sum, r) => sum + (r.flujoAct * r.n * (r.n + 1)), 0),
+    denominador: sumaFlujoAct * Math.pow(1 + tasaAnualOportunidad, 2),
+    conv: conv,
+    // Cálculo paso a paso con fórmula estándar
+    paso1: Math.pow(1 + tasaAnualOportunidad, 2),
+    paso2: sumaFlujoAct * Math.pow(1 + tasaAnualOportunidad, 2)
   })
   
   console.log('🔍 DEBUG CONVEXIDAD - FACTORES POR PERÍODO:', rows.map(r => ({ n: r.n, factorConv: r.factorConv })))
@@ -715,16 +729,15 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
 
   CalculationLogger.addStep({
     step: "Convexidad",
-    description: "Fórmula exacta de Excel: SUMA(Factor p/Convexidad) / ((1 + Tasa anual de oportunidad)² × Σ(Flujo Act.) × (Días × Año / Frecuencia del cupón)²)",
-    formula: "CV = Σ(Factor p/Convexidad) / ((1 + Tasa anual)² × Σ(Flujo Act.) × (Días/Frecuencia)²)",
+    description: "Fórmula estándar de convexidad: CV = Σ(PV × t × (t+1)) / (P × (1+r)²)",
+    formula: "CV = Σ(PV × t × (t+1)) / (P × (1+r)²)",
     inputs: {
-      sumaFactorConv: sumFactorConv,
       sumaFlujoAct: sumaFlujoAct,
       tasaAnualOportunidad: tasaAnualOportunidad,
-      diasPorFrecuencia: diasPorFrecuencia,
-      denominadorConvexidad,
+      numerador: rows.slice(1).reduce((sum, r) => sum + (r.flujoAct * r.n * (r.n + 1)), 0),
+      denominador: sumaFlujoAct * Math.pow(1 + tasaAnualOportunidad, 2),
     },
-    calculation: `${sumFactorConv} / (${Math.pow(1 + tasaAnualOportunidad, 2)} × ${sumaFlujoAct} × ${Math.pow(diasPorFrecuencia, 2)}) = ${conv}`,
+    calculation: `Numerador = Σ(PV × t × (t+1)), Denominador = ${sumaFlujoAct} × (1 + ${tasaAnualOportunidad})² = ${conv}`,
     result: conv,
     dependencies: ["Precio Actual"],
   })
