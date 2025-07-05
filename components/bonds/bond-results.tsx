@@ -182,6 +182,24 @@ function StructuringBlock() {
               <div className="text-sm text-gray-600">Días capitalización</div>
             </div>
           )}
+          {/* Campo: Precio Actual */}
+          {constants.precioActual !== undefined && (
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-900">
+                {formatCurrency(constants.precioActual, 'PEN')}
+              </div>
+              <div className="text-sm text-gray-600">Precio Actual</div>
+            </div>
+          )}
+          {/* Campo: Utilidad / Pérdida */}
+          {constants.utilidad !== undefined && (
+            <div className="text-center">
+              <div className="text-lg font-bold text-gray-900">
+                {formatCurrency(constants.utilidad, 'PEN')}
+              </div>
+              <div className="text-sm text-gray-600">Utilidad / Pérdida</div>
+            </div>
+          )}
         </div>
 
       </CardContent>

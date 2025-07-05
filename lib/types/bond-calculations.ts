@@ -50,6 +50,8 @@ export interface BondConstants {
   costesInicialesBonista: number
   cokPeriodo?: number // COK por período
   diasCapitalizacion?: number // Días capitalización (solo para tasa nominal)
+  precioActual?: number // Precio actual del bono
+  utilidad?: number // Utilidad / Pérdida
 }
 
 export interface BondMetrics {

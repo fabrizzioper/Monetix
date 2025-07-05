@@ -577,6 +577,9 @@ export function calculateConstants(input: BondInput): BondConstants {
     costesInicialesBonista,
     cokPeriodo,
     diasCapitalizacion,
+    // Estos valores se calcularán después en calculateBond
+    precioActual: undefined,
+    utilidad: undefined,
   }
   
   console.log('🔍 calculateConstants - constants finales:', constants);
@@ -690,18 +693,25 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
   })
 
   const sumFactorConv = rows.reduce((s, r) => s + r.factorConv, 0)
-  // Convexidad: Excel usa el valor absoluto de la suma de todos los flujos actualizados (excluyendo período 0) como denominador
-  const precioTotalConvexidad = Math.abs(rows.slice(1).reduce((s, r) => s + r.flujoAct, 0))
-  const conv = sumFactorConv / precioTotalConvexidad
+  // Convexidad: Fórmula exacta de Excel
+  // =SUMA(Factor p/Convexidad) / (POTENCIA(1+Frecuencia del cupón,2) * SUMA(Flujo Act.) * POTENCIA(Dias x Año/Frecuencia del cupón,2))
+  const sumaFlujoAct = rows.slice(1).reduce((s, r) => s + r.flujoAct, 0)
+  const frecuenciaCupon = input.frecuenciaCupon
+  const diasPorAnio = input.diasPorAnio
+  const denominadorConvexidad = Math.pow(1 + frecuenciaCupon, 2) * Math.abs(sumaFlujoAct) * Math.pow(diasPorAnio / frecuenciaCupon, 2)
+  const conv = sumFactorConv / denominadorConvexidad
   CalculationLogger.addStep({
     step: "Convexidad",
-    description: "Suma de factores de convexidad dividido por el valor absoluto de la suma total de flujos actualizados (excluyendo período 0)",
-    formula: "CV = Σ(PV_n × n × (n+1)) / |Σ(PV_n)|",
+    description: "Fórmula exacta de Excel: SUMA(Factor p/Convexidad) / (POTENCIA(1+Frecuencia del cupón,2) * SUMA(Flujo Act.) * POTENCIA(Dias x Año/Frecuencia del cupón,2))",
+    formula: "CV = Σ(Factor p/Convexidad) / ((1 + frecuenciaCupon)² × Σ(Flujo Act.) × (diasPorAnio/frecuenciaCupon)²)",
     inputs: {
       sumaFactorConv: sumFactorConv,
-      precioTotalConvexidad,
+      sumaFlujoAct: sumaFlujoAct,
+      frecuenciaCupon,
+      diasPorAnio,
+      denominadorConvexidad,
     },
-    calculation: `${sumFactorConv} / |${precioTotalConvexidad}| = ${conv}`,
+    calculation: `${sumFactorConv} / (${Math.pow(1 + frecuenciaCupon, 2)} × ${Math.abs(sumaFlujoAct)} × ${Math.pow(diasPorAnio / frecuenciaCupon, 2)}) = ${conv}`,
     result: conv,
     dependencies: ["Precio Actual"],
   })
@@ -782,6 +792,10 @@ export function calculateBond(input: BondInput, bondName = "Bono"): BondCalculat
   const constants = calculateConstants(input)
   const schedule = buildBondTable(input)
   const metrics = calculateMetrics(input, schedule)
+
+  // Agregar precio actual y utilidad a las constantes
+  constants.precioActual = metrics.precioActual
+  constants.utilidad = metrics.utilidad
 
   CalculationLogger.finishLogging(constants, schedule, metrics)
 
