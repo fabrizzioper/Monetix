@@ -233,8 +233,9 @@ export function buildBondTable(input: BondInput): FlowRow[] {
       const saldoFinal = input.valorNominal
       
       // Valor presente y factores para período 0
-      const pv = flujoBonista / Math.pow(1 + kdDec, n)
-      const faPlazo = pv * n
+      const cokPeriodoDecimal = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1 : 0
+      const pv = flujoBonista / Math.pow(1 + cokPeriodoDecimal, n)
+      const faPlazo = pv * n * (diasPorPeriodo / 360)
       const factorConv = pv * n * (n + 1)
 
       rows.push({
@@ -646,7 +647,6 @@ function irr(cashFlows: number[], guess = 0.1, maxIterations = 100, tolerance = 
 /* ---------- Métricas ---------- */
 
 export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics {
-  const kdDec = input.kd ? pct(input.kd) : 0
 
   const precio = rows.slice(1).reduce((s, r) => s + r.flujoAct, 0)
   CalculationLogger.addStep({
@@ -676,9 +676,18 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
   })
 
   const sumFaPlazo = rows.reduce((s, r) => s + r.faXPlazo, 0)
-  // Duración: Excel usa la suma de todos los flujos actualizados (excluyendo período 0) como denominador
+  // Duración de Macaulay: D = Σ(PV × n) / P
+  // Donde PV = valor presente de cada flujo, n = período, P = precio del bono
   const precioTotal = rows.slice(1).reduce((s, r) => s + r.flujoAct, 0)
-  const dur = sumFaPlazo / precioTotal
+  const dur = precioTotal > 0 ? sumFaPlazo / precioTotal : 0
+  
+  console.log('🔍 Cálculo Duración:', {
+    sumFaPlazo,
+    precioTotal,
+    dur,
+    numRows: rows.length,
+    flujosAct: rows.slice(1).map(r => r.flujoAct)
+  })
   CalculationLogger.addStep({
     step: "Duración de Macaulay",
     description: "Suma de FA×Plazo dividido por la suma total de flujos actualizados",
@@ -693,41 +702,58 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
   })
 
   const sumFactorConv = rows.reduce((s, r) => s + r.factorConv, 0)
-  // Convexidad: Fórmula exacta de Excel
-  // =SUMA(Factor p/Convexidad) / (POTENCIA(1+Frecuencia del cupón,2) * SUMA(Flujo Act.) * POTENCIA(Dias x Año/Frecuencia del cupón,2))
-  const sumaFlujoAct = rows.slice(1).reduce((s, r) => s + r.flujoAct, 0)
-  const frecuenciaCupon = input.frecuenciaCupon
-  const diasPorAnio = input.diasPorAnio
-  const denominadorConvexidad = Math.pow(1 + frecuenciaCupon, 2) * Math.abs(sumaFlujoAct) * Math.pow(diasPorAnio / frecuenciaCupon, 2)
-  const conv = sumFactorConv / denominadorConvexidad
+  // Convexidad: Fórmula corregida para coincidir con Excel
+  // Convexidad = Σ(Factor p/Convexidad) / (Precio × (1 + r)²)
+  // Donde r es la tasa de descuento por período
+  const precioBono = rows.slice(1).reduce((s, r) => s + r.flujoAct, 0)
+  const cokPeriodoConv = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1 : 0
+  const denominadorConvexidad = precioBono * Math.pow(1 + cokPeriodoConv, 2)
+  const conv = denominadorConvexidad > 0 ? sumFactorConv / denominadorConvexidad : 0
+  
+  console.log('🔍 Cálculo Convexidad:', {
+    sumFactorConv,
+    precioBono,
+    cokPeriodoConv,
+    denominadorConvexidad,
+    conv,
+    factorConv: rows.map(r => r.factorConv)
+  })
   CalculationLogger.addStep({
     step: "Convexidad",
-    description: "Fórmula exacta de Excel: SUMA(Factor p/Convexidad) / (POTENCIA(1+Frecuencia del cupón,2) * SUMA(Flujo Act.) * POTENCIA(Dias x Año/Frecuencia del cupón,2))",
-    formula: "CV = Σ(Factor p/Convexidad) / ((1 + frecuenciaCupon)² × Σ(Flujo Act.) × (diasPorAnio/frecuenciaCupon)²)",
+    description: "Fórmula corregida: Convexidad = Σ(Factor p/Convexidad) / (Precio × (1 + r)²)",
+    formula: "CV = Σ(Factor p/Convexidad) / (P × (1 + r)²)",
     inputs: {
       sumaFactorConv: sumFactorConv,
-      sumaFlujoAct: sumaFlujoAct,
-      frecuenciaCupon,
-      diasPorAnio,
+      precioBono: precioBono,
+      cokPeriodoConv: cokPeriodoConv,
       denominadorConvexidad,
     },
-    calculation: `${sumFactorConv} / (${Math.pow(1 + frecuenciaCupon, 2)} × ${Math.abs(sumaFlujoAct)} × ${Math.pow(diasPorAnio / frecuenciaCupon, 2)}) = ${conv}`,
+    calculation: `${sumFactorConv} / (${precioBono} × (1 + ${cokPeriodoConv})²) = ${conv}`,
     result: conv,
     dependencies: ["Precio Actual"],
   })
 
   const total = dur + conv
-  const durMod = kdDec > 0 ? dur / (1 + kdDec) : dur
+  // Duración Modificada: D_mod = D / (1 + r)
+  // Donde r es la tasa de descuento por período (COK por período)
+  const cokPeriodoDecimal = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1 : 0
+  const durMod = cokPeriodoDecimal > 0 ? dur / (1 + cokPeriodoDecimal) : dur
+  
+  console.log('🔍 Cálculo Duración Modificada:', {
+    dur,
+    cokPeriodoDecimal,
+    durMod
+  })
 
   CalculationLogger.addStep({
     step: "Duración Modificada",
-    description: "Duración ajustada por la tasa de descuento",
-    formula: "D_mod = D / (1 + kd)",
+    description: "Duración ajustada por la tasa de descuento por período (COK por período)",
+    formula: "D_mod = D / (1 + r_periodo)",
     inputs: {
       duracion: dur,
-      kd: kdDec,
+      cokPeriodoDecimal: cokPeriodoDecimal,
     },
-    calculation: kdDec > 0 ? `${dur} / (1 + ${kdDec}) = ${durMod}` : `${dur} (kd = 0)`,
+    calculation: cokPeriodoDecimal > 0 ? `${dur} / (1 + ${cokPeriodoDecimal}) = ${durMod}` : `${dur} (tasa = 0)`,
     result: durMod,
     dependencies: ["Duración de Macaulay"],
   })

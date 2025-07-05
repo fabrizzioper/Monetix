@@ -317,7 +317,7 @@ export function BondResults() {
           <CardDescription>Indicadores para análisis de riesgo</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.duracion.toFixed(2)}</div>
               <div className="text-xs sm:text-sm font-medium text-gray-600">Duración</div>
@@ -333,6 +333,11 @@ export function BondResults() {
               <div className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.duracionModif.toFixed(2)}</div>
               <div className="text-xs sm:text-sm font-medium text-gray-600">Duración Mod.</div>
               <div className="text-xs text-gray-500">Duración / (1 + kd)</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.total.toFixed(2)}</div>
+              <div className="text-xs sm:text-sm font-medium text-gray-600">Total</div>
+              <div className="text-xs text-gray-500">Duración + Convexidad</div>
             </div>
           </div>
         </CardContent>

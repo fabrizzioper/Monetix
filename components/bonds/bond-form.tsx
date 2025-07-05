@@ -498,6 +498,27 @@ export function BondForm() {
                     <ErrorMessage name="tasaInteres" component="p" className="text-xs text-red-600" />
                   </div>
 
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="tasaOportunidad" className="text-sm font-medium text-gray-700">
+                      Tasa anual de oportunidad (%)
+                    </Label>
+                    <Field name="tasaOportunidad">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="tasaOportunidad"
+                          type="number"
+                          step="0.001"
+                          placeholder="Ej: 8.5"
+                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="tasaOportunidad" component="p" className="text-xs text-red-600" />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="tipoGracia" className="text-sm font-medium text-gray-700">
                       Tipo de Gracia
@@ -556,25 +577,6 @@ export function BondForm() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="tasaOportunidad" className="text-sm font-medium text-gray-700">
-                      Tasa anual de oportunidad (%)
-                    </Label>
-                    <Field name="tasaOportunidad">
-                      {({ field, meta }: any) => (
-                        <Input
-                          {...field}
-                          id="tasaOportunidad"
-                          type="number"
-                          step="0.001"
-                          placeholder="Ej: 8.5"
-                          className={cn("w-full", meta.touched && meta.error && "border-red-500")}
-                          value={field.value ?? ''}
-                        />
-                      )}
-                    </Field>
-                    <ErrorMessage name="tasaOportunidad" component="p" className="text-xs text-red-600" />
-                  </div>
                 </CardContent>
               </Card>
 
