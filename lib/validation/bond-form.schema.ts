@@ -58,8 +58,8 @@ export const bondFormSchema = Yup.object({
 
   tasaOportunidad: Yup.number()
     .required("La tasa anual de oportunidad es requerida")
-    .min(0.0001, "Debe ser mayor a 0")
-    .max(100, "Máximo 100%"),
+    .min(5, "Mínimo 5%")
+    .max(12, "Máximo 12%"),
 })
 
 export type BondFormValues = Yup.InferType<typeof bondFormSchema>

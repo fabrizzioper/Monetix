@@ -11,8 +11,6 @@ import {
   FileText,
   Table,
   TrendingUp,
-  BarChart3,
-  CandlestickChartIcon as Candlestick,
   Info,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -23,20 +21,16 @@ import { ExportService } from "@/lib/services/export.service"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { BondScheduleTable } from "./visualizations/bond-schedule-table"
 import { BondLineChart } from "./visualizations/bond-line-chart"
-import { BondCandlestickChart } from "./visualizations/bond-candlestick-chart"
-import { BondComboChart } from "./visualizations/bond-combo-chart"
 import { cn } from "@/lib/utils"
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/loading-spinner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { BondConstantsModal } from "./bond-constants-modal"
 
-type ViewType = "table" | "line" | "candlestick" | "combo"
+type ViewType = "table" | "line"
 
 const viewOptions = [
   { id: "table", label: "Tabla", icon: Table, description: "Vista tabular detallada" },
   { id: "line", label: "Línea", icon: TrendingUp, description: "Flujos en el tiempo" },
-  { id: "candlestick", label: "Velas", icon: Candlestick, description: "Análisis financiero" },
-  { id: "combo", label: "Combinado", icon: BarChart3, description: "Barras + línea" },
 ] as const
 
 function MetricsCard({
@@ -182,24 +176,6 @@ function StructuringBlock() {
               <div className="text-sm text-gray-600">Días capitalización</div>
             </div>
           )}
-          {/* Campo: Precio Actual */}
-          {constants.precioActual !== undefined && (
-            <div className="text-center">
-              <div className="text-lg font-bold text-gray-900">
-                {formatCurrency(constants.precioActual, 'PEN')}
-              </div>
-              <div className="text-sm text-gray-600">Precio Actual</div>
-            </div>
-          )}
-          {/* Campo: Utilidad / Pérdida */}
-          {constants.utilidad !== undefined && (
-            <div className="text-center">
-              <div className="text-lg font-bold text-gray-900">
-                {formatCurrency(constants.utilidad, 'PEN')}
-              </div>
-              <div className="text-sm text-gray-600">Utilidad / Pérdida</div>
-            </div>
-          )}
         </div>
 
       </CardContent>
@@ -245,10 +221,6 @@ export function BondResults() {
         return <BondScheduleTable />
       case "line":
         return <BondLineChart />
-      case "candlestick":
-        return <BondCandlestickChart />
-      case "combo":
-        return <BondComboChart />
       default:
         return <BondScheduleTable />
     }

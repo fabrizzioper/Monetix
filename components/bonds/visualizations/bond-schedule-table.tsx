@@ -54,8 +54,8 @@ export function BondScheduleTable() {
                     <td className="p-2 text-right">{formatCurrency(row.bono, "PEN")}</td>
                     <td className="p-2 text-right">{formatCurrency(row.saldoFinal, "PEN")}</td>
                     <td className="p-2 text-right">{formatCurrency(row.cuponInteres, "PEN")}</td>
-                    <td className="p-2 text-right">{formatCurrency(row.cuota, "PEN")}</td>
-                    <td className="p-2 text-right">{formatCurrency(row.amort, "PEN")}</td>
+                    <td className="p-2 text-right">{formatCurrency(row.cuota === 0 ? 0 : -1 * row.cuota, "PEN")}</td>
+                    <td className="p-2 text-right">{formatCurrency(row.amort === 0 ? 0 : -1 * row.amort, "PEN")}</td>
                     <td className="p-2 text-right">{formatCurrency(row.flujoEmisor, "PEN")}</td>
                     <td className="p-2 text-right">{formatCurrency(row.flujoBonista, "PEN")}</td>
                     <td className="p-2 text-right">{formatCurrency(row.flujoAct, "PEN")}</td>
