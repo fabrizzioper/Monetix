@@ -202,6 +202,10 @@ export function BondResults() {
   }
 
   const { metrics, input, constants } = calculationResult
+  
+  console.log('🔍 DEBUG RESULTADOS - metrics recibidos:', metrics)
+  console.log('🔍 DEBUG RESULTADOS - convexidad específica:', metrics.convexidad)
+  console.log('🔍 DEBUG RESULTADOS - total específico:', metrics.total)
 
   const handleExportExcel = () => {
     if (calculationResult && currentBond) {

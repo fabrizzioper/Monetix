@@ -93,7 +93,6 @@ export function BondForm() {
 
   const handleSubmit = async (values: any, actions: any) => {
     try {
-      console.log('handleSubmit: valores recibidos', values);
       clearLocalStorage()
       const bondInput: any = {};
       if (values.valorNominal !== '') bondInput.valorNominal = Number(values.valorNominal);
@@ -133,9 +132,7 @@ export function BondForm() {
       } else {
         bondInput.teaCalculada = null;
       }
-      console.log('handleSubmit: bondInput construido', bondInput);
-      console.log('handleSubmit: tasaOportunidad en bondInput:', bondInput.tasaOportunidad);
-      console.log('handleSubmit: tipo de tasaOportunidad:', typeof bondInput.tasaOportunidad);
+   
       let result
       if (mode === "edit" && currentBond) {
         result = await updateBond(currentBond.id, {
@@ -267,7 +264,6 @@ export function BondForm() {
 
       <Formik initialValues={initialValues} validationSchema={bondFormSchema} onSubmit={handleSubmit} enableReinitialize>
         {({ isSubmitting, values, errors, touched }) => {
-          console.log("Formik errors", errors, touched, values);
           useEffect(() => {
             handleFormChange(values, bondName)
           }, [values, bondName])

@@ -113,7 +113,6 @@ export function BondsTable() {
 
   // Log de la lista de bonos cada vez que cambia
   useEffect(() => {
-    console.log("[useEffect] Lista de bonos actualizada:", bonds)
   }, [bonds])
 
   if (isLoading) {
@@ -205,7 +204,6 @@ export function BondsTable() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredBonds.map((bond) => {
-                console.log("[render tabla] Bono:", bond)
                 return (
                   <tr key={bond.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
