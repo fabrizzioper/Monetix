@@ -236,7 +236,8 @@ export function buildBondTable(input: BondInput): FlowRow[] {
       const cokPeriodoDecimal = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), (input.diasPorAnio / input.frecuenciaCupon) / 360) - 1 : 0
       const pv = flujoBonista / Math.pow(1 + cokPeriodoDecimal, n)
       const faPlazo = pv * n * (diasPorPeriodo / 360)
-      const factorConv = pv * n * (n + 1) * (diasPorPeriodo / 360) * 2
+      const factorMultiplicador = input.frecuenciaCupon === 2 ? 2 : 1 // Factor 2 solo para semestral
+      const factorConv = pv * n * (n + 1) * (diasPorPeriodo / 360) * factorMultiplicador
 
       rows.push({
         n,
@@ -383,8 +384,9 @@ export function buildBondTable(input: BondInput): FlowRow[] {
       const pv = flujoBonista / Math.pow(1 + cokPeriodoDecimal, n)
       //9. FA x Plazo - Fórmula exacta del Excel: PV * n * (días por período / 360)
       const faPlazo = pv * n * (diasPorPeriodo / 360)
-      //10. Factor de Convexidad - Fórmula de Excel: PV * n * (n + 1) * (días por período / 360) * 2
-      const factorConv = pv * n * (n + 1) * (diasPorPeriodo / 360) * 2
+      //10. Factor de Convexidad - Fórmula de Excel: PV * n * (n + 1) * (días por período / 360) * factor
+      const factorMultiplicador = input.frecuenciaCupon === 2 ? 2 : 1 // Factor 2 solo para semestral
+      const factorConv = pv * n * (n + 1) * (diasPorPeriodo / 360) * factorMultiplicador
 
       rows.push({
         n,
@@ -694,8 +696,15 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
   let conv: number
   
   if (sumaFlujoAct > 0) {
-    // COK semestral (L24 en Excel) - debe ser 4.51794%
-    const cokSemestral = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), 0.5) - 1 : 0
+    // COK según frecuencia (L24 en Excel)
+    let cokFrecuencia: number
+    if (input.frecuenciaCupon === 1) {
+      // Para frecuencia anual, usar COK anual
+      cokFrecuencia = pct(input.tasaOportunidad)
+    } else {
+      // Para frecuencia semestral, usar COK semestral
+      cokFrecuencia = input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), 0.5) - 1 : 0
+    }
     // E20/L16 en Excel: E20 depende del tipo de tasa, L16 = frecuencia cupón
     let e20: number
     if (input.tipoTasa === "Efectiva") {
@@ -717,7 +726,7 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
     const factorE20L16 = diasPorPeriodoFrecuencia
     
     // Calcular paso a paso para debug
-    const denominador1 = Math.pow(1 + cokSemestral, 2)
+    const denominador1 = Math.pow(1 + cokFrecuencia, 2)
     const denominador2 = sumaFlujoAct * Math.pow(input.diasPorAnio / factorE20L16, 2) // POTENCIA(Días x Año / Frecuencia del cupón, 2)
     const denominadorTotal = denominador1 * denominador2
     
@@ -726,7 +735,7 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
     
     console.log('Numerador: ∑ Factor p/Convexidad\t', sumFactorConv.toFixed(2))
     console.log('')
-    console.log('(1+COKsem​)2\t', denominador1.toFixed(4))
+    console.log('(1+COKsem​)2\t', denominador1.toFixed(8))
     console.log('')
     console.log('Precio del bono PPP (∑ Flujo Act.)\t', sumaFlujoAct.toFixed(2))
     console.log('')
@@ -743,15 +752,15 @@ export function calculateMetrics(input: BondInput, rows: FlowRow[]): BondMetrics
 
   CalculationLogger.addStep({
     step: "Convexidad",
-    description: "Fórmula de Excel: Σ(Factores_Convexidad) / [(1 + COK_semestral)² × Σ(Flujos_Actualizados) × (Días_por_año/Frecuencia_cupón)²]",
-    formula: "CV = Σ(Factores_Convexidad) / [(1 + COK_semestral)² × Σ(Flujos_Actualizados) × (Días_por_año/Frecuencia_cupón)²]",
+    description: "Fórmula de Excel: Σ(Factores_Convexidad) / [(1 + COK_frecuencia)² × Σ(Flujos_Actualizados) × (Días_por_año/Frecuencia_cupón)²]",
+    formula: "CV = Σ(Factores_Convexidad) / [(1 + COK_frecuencia)² × Σ(Flujos_Actualizados) × (Días_por_año/Frecuencia_cupón)²]",
     inputs: {
       sumaFlujoAct: sumaFlujoAct,
       sumFactorConv: sumFactorConv,
-      cokSemestral: input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), 0.5) - 1 : 0,
+      cokFrecuencia: input.frecuenciaCupon === 1 ? pct(input.tasaOportunidad) : (input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), 0.5) - 1 : 0),
       factorDias: input.diasPorAnio / input.frecuenciaCupon,
     },
-    calculation: `${sumFactorConv} / (${Math.pow(1 + (input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), 0.5) - 1 : 0), 2).toFixed(6)} × ${sumaFlujoAct} × ${Math.pow(input.diasPorAnio / input.frecuenciaCupon, 2).toFixed(2)}) = ${conv}`,
+    calculation: `${sumFactorConv} / (${Math.pow(1 + (input.frecuenciaCupon === 1 ? pct(input.tasaOportunidad) : (input.tasaOportunidad ? Math.pow(1 + pct(input.tasaOportunidad), 0.5) - 1 : 0)), 2).toFixed(6)} × ${sumaFlujoAct} × ${Math.pow(input.diasPorAnio / input.frecuenciaCupon, 2).toFixed(2)}) = ${conv}`,
     result: conv,
     dependencies: ["Precio Actual"],
   })
