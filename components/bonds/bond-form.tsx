@@ -17,6 +17,7 @@ import { useUserBonds } from "@/lib/hooks/use-user-bonds"
 import { cn } from "@/lib/utils"
 
 const defaultValues = {
+  bondName: '',
   valorNominal: '',
   nAnios: '',
   frecuenciaCupon: '',
@@ -67,9 +68,10 @@ export function BondForm() {
   }, [currentBond])
 
   // Guardar en localStorage cada vez que cambian los valores o el nombre
-  const handleFormChange = (values: any, bondNameValue: string) => {
+  const handleFormChange = (values: any, bondNameValue?: string) => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ values, bondName: bondNameValue }))
+      const nameToSave = bondNameValue || values.bondName || bondName;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ values, bondName: nameToSave }))
     }
   }
 
@@ -253,38 +255,45 @@ export function BondForm() {
         </div>
       </div>
 
-      {/* Información General */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Información General</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full">
-            <Label htmlFor="bondName" className="text-sm font-medium text-gray-700">
-              Nombre del Bono
-            </Label>
-            <Input
-              id="bondName"
-              value={bondName}
-              onChange={(e) => {
-                setBondName(e.target.value)
-                handleFormChange(initialValues, e.target.value)
-              }}
-              placeholder="Ej: Bono Corporativo ABC"
-              className="mt-2 w-full"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       <Formik initialValues={initialValues} validationSchema={bondFormSchema} onSubmit={handleSubmit} enableReinitialize>
         {({ isSubmitting, values, errors, touched }) => {
           useEffect(() => {
-            handleFormChange(values, bondName)
-          }, [values, bondName])
+            handleFormChange(values)
+          }, [values])
           return (
             <Form className="space-y-6 relative">
               {isSubmitting && <LoadingOverlay text="Calculando..." />}
+              
+              {/* Información General */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl">Información General</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="w-full">
+                    <Label htmlFor="bondName" className="text-sm font-medium text-gray-700">
+                      Nombre del Bono
+                    </Label>
+                    <Field name="bondName">
+                      {({ field, meta }: any) => (
+                        <Input
+                          {...field}
+                          id="bondName"
+                          placeholder="Ej: Bono Corporativo ABC"
+                          className={cn("mt-2 w-full", meta.touched && meta.error && "border-red-500")}
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setBondName(e.target.value);
+                          }}
+                        />
+                      )}
+                    </Field>
+                    <ErrorMessage name="bondName" component="p" className="text-xs text-red-600 mt-1" />
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Sección Emisor */}
               <Card>
                 <CardHeader>
@@ -464,6 +473,7 @@ export function BondForm() {
                           </Select>
                         )}
                       </Field>
+                      <ErrorMessage name="capitalizacion" component="p" className="text-xs text-red-600" />
                       {/* Cálculo y visualización de TEA como input bloqueado */}
                       {values.tasaInteres && values.capitalizacion && (
                         <div className="mt-1">

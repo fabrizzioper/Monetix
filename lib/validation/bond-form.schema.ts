@@ -1,6 +1,11 @@
 import * as Yup from "yup"
 
 export const bondFormSchema = Yup.object({
+  bondName: Yup.string()
+    .required("El nombre del bono es requerido")
+    .min(3, "El nombre debe tener al menos 3 caracteres")
+    .max(100, "El nombre no puede exceder 100 caracteres"),
+
   valorNominal: Yup.number()
     .required("El valor nominal es requerido")
     .positive("Debe ser mayor a 0")
@@ -21,6 +26,13 @@ export const bondFormSchema = Yup.object({
   tipoTasa: Yup.string()
     .required("El tipo de tasa es requerido")
     .oneOf(["Efectiva", "Nominal"], "Tipo de tasa inválido"),
+
+  capitalizacion: Yup.string()
+    .when('tipoTasa', {
+      is: 'Nominal',
+      then: (schema) => schema.required("La capitalización es requerida cuando la tasa es nominal"),
+      otherwise: (schema) => schema.optional().nullable(),
+    }),
 
   tasaInteres: Yup.number()
     .required("La tasa de interés es requerida")
