@@ -203,9 +203,12 @@ export function BondResults() {
 
   const { metrics, input, constants } = calculationResult
   
-  console.log('🔍 DEBUG RESULTADOS - metrics recibidos:', metrics)
-  console.log('🔍 DEBUG RESULTADOS - convexidad específica:', metrics.convexidad)
-  console.log('🔍 DEBUG RESULTADOS - total específico:', metrics.total)
+  console.log('=== RESULTADOS MOSTRADOS ===')
+  console.log('Precio actual:', metrics.precioActual.toFixed(2))
+  console.log('Utilidad:', metrics.utilidad.toFixed(2))
+  console.log('Duración:', metrics.duracion.toFixed(2))
+  console.log('Convexidad:', metrics.convexidad.toFixed(2))
+  console.log('Total:', metrics.total.toFixed(2))
 
   const handleExportExcel = () => {
     if (calculationResult && currentBond) {
@@ -314,6 +317,28 @@ export function BondResults() {
       <BondConstantsModal open={showConstantesModal} onOpenChange={setShowConstantesModal} input={input} constants={constants} />
 
   
+      {/* 2. Precio Actual y Utilidad */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">Precio Actual y Utilidad</CardTitle>
+          <CardDescription>Valores calculados del bono</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-2xl font-bold text-blue-700">{formatCurrency(metrics.precioActual, "PEN")}</div>
+              <div className="text-sm font-medium text-blue-600">Precio Actual</div>
+              <div className="text-xs text-gray-500">Valor presente de los flujos futuros</div>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="text-2xl font-bold text-purple-700">{formatCurrency(metrics.utilidad, "PEN")}</div>
+              <div className="text-sm font-medium text-purple-600">Utilidad / Pérdida</div>
+              <div className="text-xs text-gray-500">Diferencia entre precio y valor nominal</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 3. Ratios de decisión */}
       <Card>
         <CardHeader>
@@ -332,13 +357,16 @@ export function BondResults() {
               <div className="text-xs sm:text-sm font-medium text-gray-600">Convexidad</div>
               <div className="text-xs text-gray-500">Curvatura precio-tasa</div>
             </div>
-         
+            <div className="text-center">
+              <div className="text-lg sm:text-2xl font-bold text-gray-900">{(metrics.duracion + metrics.convexidad).toFixed(2)}</div>
+              <div className="text-xs sm:text-sm font-medium text-gray-600">Total</div>
+              <div className="text-xs text-gray-500">Duración + Convexidad</div>
+            </div>
             <div className="text-center">
               <div className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.duracionModif.toFixed(2)}</div>
               <div className="text-xs sm:text-sm font-medium text-gray-600">Duración Mod.</div>
               <div className="text-xs text-gray-500">Duración / (1 + kd)</div>
             </div>
-      
           </div>
         </CardContent>
       </Card>

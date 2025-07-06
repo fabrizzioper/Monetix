@@ -31,10 +31,17 @@ export const bondFormSchema = Yup.object({
     .required("El tipo de gracia es requerido")
     .oneOf(["Total", "Parcial", "Ninguna"], "Tipo de gracia inválido"),
 
+  nPeriodosGracia: Yup.number()
+    .when('tipoGracia', {
+      is: (tipoGracia: string) => tipoGracia !== 'Ninguna',
+      then: (schema) => schema.required("El número de períodos de gracia es requerido").oneOf([1, 2, 3], "Debe ser 1, 2 o 3 períodos"),
+      otherwise: (schema) => schema.optional().nullable(),
+    }),
+
   plazoGraciaAnio: Yup.number()
     .when('tipoGracia', {
       is: (tipoGracia: string) => tipoGracia !== 'Ninguna',
-      then: (schema) => schema.required("El plazo de gracia es requerido").oneOf([1, 2, 3], "Debe ser 1, 2 o 3 años"),
+      then: (schema) => schema.required("El plazo de gracia es requerido"),
       otherwise: (schema) => schema.optional().nullable(),
     }),
 

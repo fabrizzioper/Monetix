@@ -24,6 +24,7 @@ const defaultValues = {
   tipoTasa: '',
   tasaInteres: '',
   tipoGracia: '',
+  nPeriodosGracia: '',
   plazoGraciaAnio: '',
   pctEstruct: 1.000,
   pctColoc: 0.150,
@@ -102,7 +103,13 @@ export function BondForm() {
       if (values.frecuenciaCupon !== '') bondInput.frecuenciaCupon = Number(values.frecuenciaCupon);
       if (values.diasPorAnio !== '') bondInput.diasPorAnio = Number(values.diasPorAnio);
       if (values.tasaInteres !== '') bondInput.tasaInteres = Number(values.tasaInteres);
-      if (values.plazoGraciaAnio !== '') bondInput.plazoGraciaAnio = Number(values.plazoGraciaAnio);
+      if (values.nPeriodosGracia !== '') {
+        bondInput.nPeriodosGracia = Number(values.nPeriodosGracia);
+        // Calcular plazoGraciaAnio automáticamente
+        if (values.frecuenciaCupon) {
+          bondInput.plazoGraciaAnio = Number(values.nPeriodosGracia) / Number(values.frecuenciaCupon);
+        }
+      }
       if (values.kd !== '') bondInput.kd = Number(values.kd);
       if (values.tasaOportunidad !== '') bondInput.tasaOportunidad = Number(values.tasaOportunidad);
       bondInput.tipoTasa = values.tipoTasa;
@@ -168,7 +175,13 @@ export function BondForm() {
       if (values.frecuenciaCupon !== '') bondInputSave.frecuenciaCupon = Number(values.frecuenciaCupon);
       if (values.diasPorAnio !== '') bondInputSave.diasPorAnio = Number(values.diasPorAnio);
       if (values.tasaInteres !== '') bondInputSave.tasaInteres = Number(values.tasaInteres);
-      if (values.plazoGraciaAnio !== '') bondInputSave.plazoGraciaAnio = Number(values.plazoGraciaAnio);
+      if (values.nPeriodosGracia !== '') {
+        bondInputSave.nPeriodosGracia = Number(values.nPeriodosGracia);
+        // Calcular plazoGraciaAnio automáticamente
+        if (values.frecuenciaCupon) {
+          bondInputSave.plazoGraciaAnio = Number(values.nPeriodosGracia) / Number(values.frecuenciaCupon);
+        }
+      }
       if (values.pctEstruct !== '') bondInputSave.pctEstruct = Number(values.pctEstruct);
       if (values.pctColoc !== '') bondInputSave.pctColoc = Number(values.pctColoc);
       if (values.pctCavali !== '') bondInputSave.pctCavali = Number(values.pctCavali);
@@ -340,7 +353,14 @@ export function BondForm() {
                       {({ field, form, meta }: any) => (
                         <Select
                           value={field.value?.toString() || ""}
-                          onValueChange={(value) => form.setFieldValue("frecuenciaCupon", Number(value))}
+                          onValueChange={(value) => {
+                            form.setFieldValue("frecuenciaCupon", Number(value));
+                            // Recalcular plazo de gracia en años si hay períodos de gracia seleccionados
+                            if (values.nPeriodosGracia && value) {
+                              const plazoGraciaAnio = Number(values.nPeriodosGracia) / Number(value);
+                              form.setFieldValue("plazoGraciaAnio", plazoGraciaAnio.toString());
+                            }
+                          }}
                         >
                           <SelectTrigger className={cn("w-full", meta.touched && meta.error && "border-red-500")}>
                             <SelectValue placeholder="Seleccionar frecuencia" />
@@ -527,10 +547,12 @@ export function BondForm() {
                           value={field.value || ""}
                           onValueChange={(value) => {
                             form.setFieldValue("tipoGracia", value);
-                            // Si se selecciona "Ninguna", establecer plazo de gracia en vacío
+                            // Si se selecciona "Ninguna", establecer ambos campos en 0
                             if (value === "Ninguna") {
+                              form.setFieldValue("nPeriodosGracia", "");
                               form.setFieldValue("plazoGraciaAnio", "");
-                              // Limpiar también el error de validación
+                              // Limpiar también los errores de validación
+                              form.setFieldError("nPeriodosGracia", undefined);
                               form.setFieldError("plazoGraciaAnio", undefined);
                             }
                           }}
@@ -549,15 +571,25 @@ export function BondForm() {
                     <ErrorMessage name="tipoGracia" component="p" className="text-xs text-red-600" />
                   </div>
 
+                  {/* Campo Nº de Periodos de Gracia - Habilitado */}
                   <div className="space-y-2">
-                    <Label htmlFor="plazoGraciaAnio" className="text-sm font-medium text-gray-700">
-                      Plazo de Gracia (año)
+                    <Label htmlFor="nPeriodosGracia" className="text-sm font-medium text-gray-700">
+                      Nº de Periodos de Gracia
                     </Label>
-                    <Field name="plazoGraciaAnio">
+                    <Field name="nPeriodosGracia">
                       {({ field, form, meta }: any) => (
                         <Select
                           value={field.value || ""}
-                          onValueChange={(value) => form.setFieldValue("plazoGraciaAnio", value)}
+                          onValueChange={(value) => {
+                            form.setFieldValue("nPeriodosGracia", value);
+                            // Calcular automáticamente el plazo de gracia en años
+                            if (value && values.frecuenciaCupon) {
+                              const plazoGraciaAnio = Number(value) / Number(values.frecuenciaCupon);
+                              form.setFieldValue("plazoGraciaAnio", plazoGraciaAnio.toString());
+                            } else {
+                              form.setFieldValue("plazoGraciaAnio", "");
+                            }
+                          }}
                           disabled={values.tipoGracia === "Ninguna"}
                         >
                           <SelectTrigger className={cn(
@@ -565,7 +597,7 @@ export function BondForm() {
                             meta.touched && meta.error && "border-red-500",
                             values.tipoGracia === "Ninguna" && "bg-gray-100 cursor-not-allowed"
                           )}>
-                            <SelectValue placeholder="Seleccionar plazo" />
+                            <SelectValue placeholder="Seleccionar períodos" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="1">1</SelectItem>
@@ -575,18 +607,18 @@ export function BondForm() {
                         </Select>
                       )}
                     </Field>
-                    <ErrorMessage name="plazoGraciaAnio" component="p" className="text-xs text-red-600" />
+                    <ErrorMessage name="nPeriodosGracia" component="p" className="text-xs text-red-600" />
                   </div>
 
-                  {/* Campo autocalculado: Nº de Periodos de Gracia */}
+                  {/* Campo Plazo de Gracia (año) - Calculado automáticamente y deshabilitado */}
                   <div className="space-y-2">
-                    <Label htmlFor="nPeriodosGracia" className="text-sm font-medium text-gray-700">
-                      Nº de Periodos de Gracia
+                    <Label htmlFor="plazoGraciaAnio" className="text-sm font-medium text-gray-700">
+                      Plazo de Gracia (año)
                     </Label>
                     <Input
-                      id="nPeriodosGracia"
+                      id="plazoGraciaAnio"
                       type="number"
-                      value={values.tipoGracia === "Ninguna" ? 0 : (values.plazoGraciaAnio && values.frecuenciaCupon ? Number(values.plazoGraciaAnio) * Number(values.frecuenciaCupon) : 0)}
+                      value={values.tipoGracia === "Ninguna" ? 0 : (values.nPeriodosGracia && values.frecuenciaCupon ? (Number(values.nPeriodosGracia) / Number(values.frecuenciaCupon)).toFixed(2) : 0)}
                       readOnly
                       disabled
                       className="w-full bg-gray-100 cursor-not-allowed"
