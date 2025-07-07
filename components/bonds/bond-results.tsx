@@ -317,27 +317,6 @@ export function BondResults() {
       <BondConstantsModal open={showConstantesModal} onOpenChange={setShowConstantesModal} input={input} constants={constants} />
 
   
-      {/* 2. Precio Actual y Utilidad */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">Precio Actual y Utilidad</CardTitle>
-          <CardDescription>Valores calculados del bono</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="text-2xl font-bold text-blue-700">{formatCurrency(metrics.precioActual, "PEN")}</div>
-              <div className="text-sm font-medium text-blue-600">Precio Actual</div>
-              <div className="text-xs text-gray-500">Valor presente de los flujos futuros</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <div className="text-2xl font-bold text-purple-700">{formatCurrency(metrics.utilidad, "PEN")}</div>
-              <div className="text-sm font-medium text-purple-600">Utilidad / Pérdida</div>
-              <div className="text-xs text-gray-500">Diferencia entre precio y valor nominal</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* 3. Ratios de decisión */}
       <Card>
@@ -346,7 +325,7 @@ export function BondResults() {
           <CardDescription>Indicadores para análisis de riesgo</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.duracion.toFixed(2)}</div>
               <div className="text-xs sm:text-sm font-medium text-gray-600">Duración</div>
@@ -357,11 +336,7 @@ export function BondResults() {
               <div className="text-xs sm:text-sm font-medium text-gray-600">Convexidad</div>
               <div className="text-xs text-gray-500">Curvatura precio-tasa</div>
             </div>
-            <div className="text-center">
-              <div className="text-lg sm:text-2xl font-bold text-gray-900">{(metrics.duracion + metrics.convexidad).toFixed(2)}</div>
-              <div className="text-xs sm:text-sm font-medium text-gray-600">Total</div>
-              <div className="text-xs text-gray-500">Duración + Convexidad</div>
-            </div>
+           
             <div className="text-center">
               <div className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.duracionModif.toFixed(2)}</div>
               <div className="text-xs sm:text-sm font-medium text-gray-600">Duración Mod.</div>
