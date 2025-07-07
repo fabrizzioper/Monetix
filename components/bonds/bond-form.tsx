@@ -61,7 +61,7 @@ export function BondForm() {
       isFirstLoad.current = false
     } else if (currentBond) {
       const values = currentBond.input || defaultValues
-      const stringValues = Object.assign({}, defaultValues, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? (defaultValues as any)[k] : String(v)])))
+      const stringValues = Object.assign({}, defaultValues, { bondName: currentBond.name || '' }, Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === undefined || v === null ? (defaultValues as any)[k] : String(v)])))
       setLocalInitialValues(stringValues)
       setBondName(currentBond.name || "")
     }
@@ -83,7 +83,7 @@ export function BondForm() {
   }
 
   const initialValues = currentBond?.input
-    ? Object.assign({}, defaultValues, Object.fromEntries(Object.entries(currentBond.input).map(([k, v]) => [k, v === undefined || v === null ? (defaultValues as any)[k] : String(v)])))
+    ? Object.assign({}, defaultValues, { bondName: currentBond.name || '' }, Object.fromEntries(Object.entries(currentBond.input).map(([k, v]) => [k, v === undefined || v === null ? (defaultValues as any)[k] : String(v)])))
     : localInitialValues
 
   useEffect(() => {
@@ -147,11 +147,11 @@ export function BondForm() {
       let result
       if (mode === "edit" && currentBond) {
         result = await updateBond(currentBond.id, {
-          name: bondName || currentBond.name,
+          name: values.bondName || currentBond.name,
           input: bondInput,
         })
       } else {
-        const name = bondName || `Bono ${new Date().toLocaleDateString("es-PE")}`
+        const name = values.bondName || `Bono ${new Date().toLocaleDateString("es-PE")}`
         result = await createBond(name, bondInput)
       }
       if (result) {
@@ -222,11 +222,11 @@ export function BondForm() {
 
       if (mode === "edit" && currentBond) {
         await updateBond(currentBond.id, {
-          name: bondName || currentBond.name,
+          name: values.bondName || currentBond.name,
           input: bondInputSave,
         })
       } else {
-        const name = bondName || `Bono ${new Date().toLocaleDateString("es-PE")}`
+        const name = values.bondName || `Bono ${new Date().toLocaleDateString("es-PE")}`
         await createBond(name, bondInputSave)
       }
 
